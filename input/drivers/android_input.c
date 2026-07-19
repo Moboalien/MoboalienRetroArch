@@ -143,21 +143,26 @@ typedef struct state_device
    char name[256];
 } state_device_t;
 
-typedef struct android_input
-{
+typedef struct android_input {
+   struct android_app *android_app;
+   const input_device_driver_t *joypad;
+   bool keyboard_linefeed_enable;
+
    int64_t quick_tap_time;
    state_device_t pad_states[MAX_USERS];        /* int alignment */
-   int mouse_x, mouse_y;
-   int16_t mouse_x_viewport_screen, mouse_y_viewport_screen;
-   int16_t mouse_x_viewport, mouse_y_viewport;
-   int mouse_x_delta, mouse_y_delta;
-   int mouse_l, mouse_r, mouse_m, mouse_wu, mouse_wd;
-   bool mouse_activated;
+
+   int mouse_x[DEFAULT_MAX_PADS], mouse_y[DEFAULT_MAX_PADS];
+   int16_t mouse_x_viewport_screen[DEFAULT_MAX_PADS], mouse_y_viewport_screen[DEFAULT_MAX_PADS];
+   int16_t mouse_x_viewport[DEFAULT_MAX_PADS], mouse_y_viewport[DEFAULT_MAX_PADS];
+   int mouse_x_delta[DEFAULT_MAX_PADS], mouse_y_delta[DEFAULT_MAX_PADS];
+   int mouse_l[DEFAULT_MAX_PADS], mouse_r[DEFAULT_MAX_PADS], mouse_m[DEFAULT_MAX_PADS], mouse_wu[DEFAULT_MAX_PADS], mouse_wd[DEFAULT_MAX_PADS];
+   bool mouse_activated[DEFAULT_MAX_PADS];
+
    unsigned pads_connected;
    unsigned pointer_count;
    sensor_t accelerometer_state;                /* float alignment */
    sensor_t gyroscope_state;                    /* float alignment */
-   float mouse_x_prev, mouse_y_prev;
+   float mouse_x_prev[DEFAULT_MAX_PADS], mouse_y_prev[DEFAULT_MAX_PADS];
    struct input_pointer pointer[MAX_TOUCH];     /* int16_t alignment */
    char device_model[256];
 } android_input_t;
@@ -670,9 +675,7 @@ static void *android_input_init(const char *joypad_driver)
    if (!android)
       return NULL;
 
-   android->mouse_activated = false;
    android->pads_connected = 0;
-   android->quick_tap_time = 0;
 
    input_keymaps_init_keyboard_lut(rarch_key_map_android);
 
@@ -751,7 +754,7 @@ static int android_check_quick_tap(android_input_t *android)
 }
 
 static INLINE void android_mouse_calculate_deltas(android_input_t *android,
-      AInputEvent *event,size_t motion_ptr,int source)
+      AInputEvent *event,size_t motion_ptr,int source, int port)
 {
    unsigned video_width, video_height;
    video_driver_get_output_size(&video_width, &video_height);
@@ -805,24 +808,24 @@ static INLINE void android_mouse_calculate_deltas(android_input_t *android,
          x = AMotionEvent_getX(event, motion_ptr);
          y = AMotionEvent_getY(event, motion_ptr);
 
-         x_delta = (x_delta - android->mouse_x_prev);
-         y_delta = (y_delta - android->mouse_y_prev);
+         x_delta = (x_delta - android->mouse_x_prev[port]);
+         y_delta = (y_delta - android->mouse_y_prev[port]);
 
-         android->mouse_x_prev = x;
-         android->mouse_y_prev = y;
+         android->mouse_x_prev[port] = x;
+         android->mouse_y_prev[port] = y;
       }
    }
 
-   android->mouse_x_delta = x_delta;
-   android->mouse_y_delta = y_delta;
+   android->mouse_x_delta[port] = x_delta;
+   android->mouse_y_delta[port] = y_delta;
 
-   if (!x) x = android->mouse_x + android->mouse_x_delta;
-   if (!y) y = android->mouse_y + android->mouse_y_delta;
+   if (!x) x = android->mouse_x[port] + android->mouse_x_delta[port];
+   if (!y) y = android->mouse_y[port] + android->mouse_y_delta[port];
 
    video_driver_translate_coord_viewport_confined_wrap(&vp,
             (int) x, (int) y,
-            &android->mouse_x_viewport, &android->mouse_y_viewport,
-            &android->mouse_x_viewport_screen, &android->mouse_y_viewport_screen);
+            &android->mouse_x_viewport[port], &android->mouse_y_viewport[port],
+            &android->mouse_x_viewport_screen[port], &android->mouse_y_viewport_screen[port]);
 
    /* x and y are used for the screen mouse, so we want
     * to avoid values outside of the viewport resolution */
@@ -831,8 +834,8 @@ static INLINE void android_mouse_calculate_deltas(android_input_t *android,
    if (y < y_min) y = y_min;
    else if (y > y_max) y = y_max;
 
-   android->mouse_x = x;
-   android->mouse_y = y;
+   android->mouse_x[port] = x;
+   android->mouse_y[port] = y;
 }
 
 static INLINE void android_input_poll_event_type_motion(
@@ -853,39 +856,39 @@ static INLINE void android_input_poll_event_type_motion(
    if (    (source & AINPUT_SOURCE_MOUSE) == AINPUT_SOURCE_MOUSE
         || (source & AINPUT_SOURCE_MOUSE_RELATIVE) == AINPUT_SOURCE_MOUSE_RELATIVE)
    {
-      if (!android->mouse_activated)
+      if (!android->mouse_activated[port])
       {
          RARCH_LOG("[Android Input] Mouse activated.\n");
-         android->mouse_activated = true;
+         android->mouse_activated[port] = true;
       }
       /* getButtonState requires API level 14 */
       if (p_AMotionEvent_getButtonState)
       {
          int btn              = (int)AMotionEvent_getButtonState(event);
 
-         android->mouse_l     = (btn & AMOTION_EVENT_BUTTON_PRIMARY);
-         android->mouse_r     = (btn & AMOTION_EVENT_BUTTON_SECONDARY);
-         android->mouse_m     = (btn & AMOTION_EVENT_BUTTON_TERTIARY);
+         android->mouse_l[port]     = (btn & AMOTION_EVENT_BUTTON_PRIMARY);
+         android->mouse_r[port]     = (btn & AMOTION_EVENT_BUTTON_SECONDARY);
+         android->mouse_m[port]     = (btn & AMOTION_EVENT_BUTTON_TERTIARY);
 
          btn                  = (int)AMotionEvent_getAxisValue(event,
                AMOTION_EVENT_AXIS_VSCROLL, motion_ptr);
 
          if (btn > 0)
-            android->mouse_wu = btn;
+            android->mouse_wu[port] = btn;
          else if (btn < 0)
-            android->mouse_wd = btn;
+            android->mouse_wd[port] = btn;
       }
       else
       {
          /* If getButtonState is not available
           * then treat all MotionEvent.ACTION_DOWN as left button presses */
          if (action == AMOTION_EVENT_ACTION_DOWN)
-            android->mouse_l = 1;
+            android->mouse_l[port] = 1;
          if (action == AMOTION_EVENT_ACTION_UP)
-            android->mouse_l = 0;
+            android->mouse_l[port] = 0;
       }
 
-      android_mouse_calculate_deltas(android,event,motion_ptr,source);
+      android_mouse_calculate_deltas(android,event,motion_ptr,source, port);
 
       return;
    }
@@ -903,7 +906,7 @@ static INLINE void android_input_poll_event_type_motion(
             if (!(input_st->flags & INP_FLAG_BLOCK_POINTER_INPUT))
                android->quick_tap_time = AMotionEvent_getEventTime(event);
          }
-         android->mouse_l = 0;
+         android->mouse_l[port] = 0;
       }
 
       memmove(android->pointer + motion_ptr,
@@ -922,8 +925,8 @@ static INLINE void android_input_poll_event_type_motion(
          /* When touch screen is pressed, set mouse
           * previous position to current position
           * before starting to calculate mouse movement deltas. */
-         android->mouse_x_prev = AMotionEvent_getX(event, motion_ptr);
-         android->mouse_y_prev = AMotionEvent_getY(event, motion_ptr);
+         android->mouse_x_prev[port] = AMotionEvent_getX(event, motion_ptr);
+         android->mouse_y_prev[port] = AMotionEvent_getY(event, motion_ptr);
 
          /* If another touch happened within 200ms after a quick tap
           * then cancel the quick tap and register left mouse button
@@ -931,14 +934,14 @@ static INLINE void android_input_poll_event_type_motion(
          if ((AMotionEvent_getEventTime(event) - android->quick_tap_time)/1000000 < 200)
          {
             android->quick_tap_time = 0;
-            android->mouse_l        = 1;
+            android->mouse_l[port]        = 1;
          }
       }
 
       if ((       action == AMOTION_EVENT_ACTION_MOVE
                || action == AMOTION_EVENT_ACTION_HOVER_MOVE)
             && ENABLE_TOUCH_SCREEN_MOUSE)
-         android_mouse_calculate_deltas(android,event,motion_ptr,source);
+         android_mouse_calculate_deltas(android,event,motion_ptr,source, port);
 
       for (motion_ptr = 0; motion_ptr < pointer_max; motion_ptr++)
       {
@@ -974,7 +977,7 @@ static INLINE void android_input_poll_event_type_motion(
    /* If more than one pointer detected
     * then count it as a mouse right click */
    if (ENABLE_TOUCH_SCREEN_MOUSE)
-      android->mouse_r = (android->pointer_count == 2);
+      android->mouse_r[port] = (android->pointer_count == 2);
 }
 
 static bool android_is_keyboard_id(int id)
@@ -1944,79 +1947,48 @@ static int16_t android_input_state(
             int val = 0;
             switch (id)
             {
-               case RETRO_DEVICE_ID_MOUSE_LEFT:
-                  return android->mouse_l || android_check_quick_tap(android);
-               case RETRO_DEVICE_ID_MOUSE_RIGHT:
-                  return android->mouse_r;
-               case RETRO_DEVICE_ID_MOUSE_MIDDLE:
-                  return android->mouse_m;
                case RETRO_DEVICE_ID_MOUSE_X:
-                  if (device == RARCH_DEVICE_MOUSE_SCREEN)
-                     return android->mouse_x_viewport_screen;
-
-                  val = android->mouse_x_delta;
-                  android->mouse_x_delta = 0;
-                  /* flush delta after it has been read */
+                  val                       = android->mouse_x_delta[port];
+                  android->mouse_x_delta[port] = 0;
                   return val;
                case RETRO_DEVICE_ID_MOUSE_Y:
-                  if (device == RARCH_DEVICE_MOUSE_SCREEN)
-                     return android->mouse_y_viewport_screen;
-
-                  val = android->mouse_y_delta;
-                  android->mouse_y_delta = 0;
-                  /* flush delta after it has been read */
+                  val                       = android->mouse_y_delta[port];
+                  android->mouse_y_delta[port] = 0;
                   return val;
+               case RETRO_DEVICE_ID_MOUSE_LEFT:
+                  return android->mouse_l[port];
+               case RETRO_DEVICE_ID_MOUSE_RIGHT:
+                  return android->mouse_r[port];
+               case RETRO_DEVICE_ID_MOUSE_MIDDLE:
+                  return android->mouse_m[port];
                case RETRO_DEVICE_ID_MOUSE_WHEELUP:
-                  val = android->mouse_wu;
-                  android->mouse_wu = 0;
-                  return val;
+                  return android->mouse_wu[port];
                case RETRO_DEVICE_ID_MOUSE_WHEELDOWN:
-                  val = android->mouse_wd;
-                  android->mouse_wd = 0;
-                  return val;
+                  return android->mouse_wd[port];
             }
          }
          break;
       case RETRO_DEVICE_LIGHTGUN:
          {
-            /* Same lightgun state is reported for all ports. */
-            int val = 0;
+            int16_t val = 0;
             switch (id)
             {
-               /* Favor mouse for lightgun control. */
-               case RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X:
-                  if (android->mouse_activated)
-                     return android->mouse_x_viewport_screen;
-                  else
-                     return android->pointer[idx].x;
-               case RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y:
-                  if (android->mouse_activated)
-                     return android->mouse_y_viewport_screen;
-                  else
-                     return android->pointer[idx].y;
-               /* Deprecated relative lightgun. */
                case RETRO_DEVICE_ID_LIGHTGUN_X:
-                  val                    = android->mouse_x_delta;
-                  android->mouse_x_delta = 0;
-                  /* flush delta after it has been read */
-                  return val;
+                  return android->mouse_x[port];
                case RETRO_DEVICE_ID_LIGHTGUN_Y:
-                  val                    = android->mouse_y_delta;
-                  android->mouse_y_delta = 0;
-                  /* flush delta after it has been read */
-                  return val;
+                  return android->mouse_y[port];
                case RETRO_DEVICE_ID_LIGHTGUN_CURSOR:
                case RETRO_DEVICE_ID_LIGHTGUN_RELOAD:
-                  return android->mouse_m || android->pointer_count == 3;
+                  return android->mouse_m[port] || (port == 0 && android->pointer_count == 3);
                case RETRO_DEVICE_ID_LIGHTGUN_SELECT:
-                  return android->mouse_r && android->mouse_l;
+                  return android->mouse_r[port] && android->mouse_l[port];
                case RETRO_DEVICE_ID_LIGHTGUN_START:
                case RETRO_DEVICE_ID_LIGHTGUN_TURBO:
-                  return android->mouse_r || android->pointer_count == 2;
+                  return android->mouse_r[port] || (port == 0 && android->pointer_count == 2);
                case RETRO_DEVICE_ID_LIGHTGUN_TRIGGER:
-                  return android->mouse_l || android_check_quick_tap(android) || android->pointer_count == 1;
+                  return android->mouse_l[port] || (port == 0 && (android_check_quick_tap(android) || android->pointer_count == 1));
                case RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN:
-                  return input_driver_pointer_is_offscreen(android->pointer[idx].x, android->pointer[idx].y);
+                  return false; // For now
             }
          }
          break;
@@ -2283,6 +2255,94 @@ static void android_input_keypress_vibrate()
 
    CALL_VOID_METHOD_PARAM(env, g_android->activity->clazz,
          g_android->doHapticFeedback, (jint)keyboard_press);
+}
+
+// ---------------------------------------------------------------------------
+// MoboAlien input bridge — called from InputInjectorRetroArch
+// ---------------------------------------------------------------------------
+void moboalien_inject_hotkey(int retrok, int down)
+{
+   if (retrok > 0 && retrok < RETROK_LAST)
+   {
+      int keycode = rarch_keysym_lut[retrok];
+      if (keycode > 0 && keycode < MAX_KEYS * 8)
+      {
+         if (down)
+            BIT_SET(android_key_state[ANDROID_KEYBOARD_PORT], keycode);
+         else
+            BIT_CLEAR(android_key_state[ANDROID_KEYBOARD_PORT], keycode);
+      }
+   }
+   input_keyboard_event(down, retrok, retrok, 0, RETRO_DEVICE_KEYBOARD);
+}
+
+void moboalien_inject_key(int port, int keycode, int down)
+{
+   static uint32_t registered_ports = 0;
+
+   if (port < 0 || port >= DEFAULT_MAX_PADS)
+      return;
+   if (keycode <= 0 || keycode >= MAX_KEYS * 8)
+      return;
+
+   if (!(registered_ports & (1u << port)))
+   {
+      input_autoconfigure_connect(
+            "MoboAlien Virtual Pad",
+            NULL, NULL,
+            android_joypad.ident,
+            port, 0, 0);
+      registered_ports |= (1u << port);
+   }
+
+   if (down)
+      BIT_SET(android_key_state[port], keycode);
+   else
+      BIT_CLEAR(android_key_state[port], keycode);
+}
+
+void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute)
+{
+   android_input_t *android = (android_input_t*)input_driver_st.current_data;
+   if (!android || port < 0 || port >= DEFAULT_MAX_PADS)
+      return;
+
+   if (is_absolute)
+   {
+      android->mouse_x[port] = x;
+      android->mouse_y[port] = y;
+   }
+   else
+   {
+      android->mouse_x_delta[port] += x;
+      android->mouse_y_delta[port] += y;
+   }
+}
+
+void moboalien_inject_mouse_button(int port, int button, int down)
+{
+   android_input_t *android = (android_input_t*)input_driver_st.current_data;
+   if (!android || port < 0 || port >= DEFAULT_MAX_PADS)
+      return;
+
+   switch (button)
+   {
+      case 0: android->mouse_l[port] = down; break;
+      case 1: android->mouse_r[port] = down; break;
+      case 2: android->mouse_m[port] = down; break;
+   }
+}
+
+void moboalien_inject_mouse_wheel(int port, int delta)
+{
+   android_input_t *android = (android_input_t*)input_driver_st.current_data;
+   if (!android || port < 0 || port >= DEFAULT_MAX_PADS)
+      return;
+
+   if (delta > 0) android->mouse_wu[port] = 1;
+   else if (delta < 0) android->mouse_wd[port] = 1;
+   // Note: Wheel up/down are typically transient, but here we set them.
+   // They should probably be cleared after poll or read.
 }
 
 input_driver_t input_android = {

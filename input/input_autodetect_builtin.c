@@ -705,6 +705,32 @@ DECL_AXIS(r_y_minus, +3) \
 DECL_AXIS(l2, +4) \
 DECL_AXIS(r2, +5)
 
+#define MOBOALIEN_DEFAULT_BINDS \
+DECL_BTN(a, 97) \
+DECL_BTN(b, 96) \
+DECL_BTN(x, 100) \
+DECL_BTN(y, 99) \
+DECL_BTN(start, 108) \
+DECL_BTN(select, 109) \
+DECL_BTN(up, 19) \
+DECL_BTN(down, 20) \
+DECL_BTN(left, 21) \
+DECL_BTN(right, 22) \
+DECL_BTN(l, 102) \
+DECL_BTN(r, 103) \
+DECL_BTN(l2, 104) \
+DECL_BTN(r2, 105) \
+DECL_BTN(l3, 106) \
+DECL_BTN(r3, 107) \
+DECL_AXIS(l_x_plus,  +0) \
+DECL_AXIS(l_x_minus, -0) \
+DECL_AXIS(l_y_plus,  +1) \
+DECL_AXIS(l_y_minus, -1) \
+DECL_AXIS(r_x_plus,  +2) \
+DECL_AXIS(r_x_minus, -2) \
+DECL_AXIS(r_y_plus,  -3) \
+DECL_AXIS(r_y_minus, +3)
+
 const char* const input_builtin_autoconfs[] =
 {
 #if defined(_WIN32) && defined(_XBOX)
@@ -778,5 +804,6 @@ const char* const input_builtin_autoconfs[] =
 #if HAVE_MFI
    DECL_AUTOCONF_DEVICE("mFi Controller", "mfi", MFI_DEFAULT_BINDS),
 #endif
+   DECL_AUTOCONF_DEVICE("MoboAlien Virtual Pad", "android", MOBOALIEN_DEFAULT_BINDS),
    NULL
 };

@@ -56,8 +56,29 @@ endif
 
 LOCAL_MODULE := retroarch-activity
 
+MOBOALIEN_DIR := $(RARCH_DIR)/moboalien-input-suite
+
 LOCAL_SRC_FILES  +=	$(RARCH_DIR)/griffin/griffin.c \
-							$(RARCH_DIR)/griffin/griffin_cpp.cpp
+							$(RARCH_DIR)/griffin/griffin_cpp.cpp \
+							$(MOBOALIEN_DIR)/retroarch/moboalien_server_android.cpp \
+							$(MOBOALIEN_DIR)/input/retroarch/input_injector_retroarch.cpp \
+							$(MOBOALIEN_DIR)/platform/android/platform_android.cpp \
+							$(MOBOALIEN_DIR)/screenshare/android/screen_capture_android.cpp \
+							$(MOBOALIEN_DIR)/screenshare/base_streamer.cpp \
+							$(MOBOALIEN_DIR)/screenshare/differential_streamer.cpp \
+							$(MOBOALIEN_DIR)/screenshare/http_streamer.cpp \
+							$(MOBOALIEN_DIR)/screenshare/tcp_streamer.cpp \
+							$(MOBOALIEN_DIR)/screenshare/udp_streamer.cpp \
+							$(MOBOALIEN_DIR)/screenshare/bitmap_differ.cpp \
+							$(MOBOALIEN_DIR)/image_utils/android/image_encoder_android.cpp \
+							$(MOBOALIEN_DIR)/controller/controller.cpp \
+							$(MOBOALIEN_DIR)/controller/handshake.cpp \
+							$(MOBOALIEN_DIR)/controller/packet_handlers.cpp \
+							$(MOBOALIEN_DIR)/protocol/packet_codec.cpp \
+							$(MOBOALIEN_DIR)/protocol/packet_encryptor.cpp \
+							$(MOBOALIEN_DIR)/utils/logger.cpp \
+							$(MOBOALIEN_DIR)/utils/utils.cpp \
+							$(MOBOALIEN_DIR)/utils/signal_handler.cpp
 
 ifeq ($(HAVE_BUILTINSMBCLIENT),1)
    DEFINES += -DHAVE_BUILTINSMBCLIENT
@@ -196,7 +217,7 @@ DEFINES += -DFLAC_PACKAGE_VERSION="\"retroarch\"" \
 	   -DFLAC__HAS_OGG=0
 
 LOCAL_CFLAGS   += -Wall -std=gnu99 -pthread -Wno-unused-function -fno-stack-protector -funroll-loops $(DEFINES)
-LOCAL_CPPFLAGS := -fexceptions -fpermissive -std=gnu++11 -fno-rtti -Wno-reorder $(DEFINES)
+LOCAL_CPPFLAGS := -fexceptions -fpermissive -std=gnu++17 -fno-rtti -Wno-reorder $(DEFINES)
 
 # Let ndk-build set the optimization flags but remove -O3 like in cf3c3
 LOCAL_CFLAGS := $(subst -O3,-O2,$(LOCAL_CFLAGS))
@@ -207,7 +228,16 @@ LOCAL_C_INCLUDES := \
 		    $(LOCAL_PATH)/$(RARCH_DIR)/deps \
 		    $(LOCAL_PATH)/$(RARCH_DIR)/deps/stb \
 		    $(LOCAL_PATH)/$(RARCH_DIR)/deps/7zip \
-		    $(LOCAL_PATH)/$(RARCH_DIR)/deps/zstd/lib
+		    $(LOCAL_PATH)/$(RARCH_DIR)/deps/zstd/lib \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)/controller/include \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)/input/include \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)/crypto/include \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)/platform/include \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)/protocol/include \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)/screenshare/include \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)/image_utils/include \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)/utils/include \
+		    $(LOCAL_PATH)/$(MOBOALIEN_DIR)
 
 INCLUDE_DIRS     := \
 		    -I$(LOCAL_PATH)/$(DEPS_DIR)/stb/ \

@@ -133,5 +133,6 @@ enum {
 #include <boolean.h>
 
 uint8_t *android_keyboard_state_get(unsigned port);
+void moboalien_inject_hotkey(int retrok, int down);
 
 #endif

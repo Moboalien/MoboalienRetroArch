@@ -6227,7 +6227,7 @@ int rarch_main(int argc, char *argv[], void *data)
    retroarch_deinit_drivers(&runloop_st->retro_ctx);
    retroarch_ctl(RARCH_CTL_STATE_FREE,  NULL);
    global_free(p_rarch);
-
+   printf("Satyam Hello world\n");
    frontend_driver_init_first(data);
 
    /* Early display server init — allows querying display metrics
