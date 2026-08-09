@@ -75,6 +75,10 @@
 
 #ifdef ANDROID
 #include "../frontend/drivers/platform_unix.h"
+#include <android/log.h>
+#define MOBOALIEN_LOG(...) __android_log_print(ANDROID_LOG_DEBUG, "MoboAlien", __VA_ARGS__)
+#else
+#define MOBOALIEN_LOG(...) RARCH_LOG(__VA_ARGS__)
 #endif
 
 #include "../ai/game_ai.h"
@@ -853,6 +857,10 @@ static int32_t input_state_wrap(
                      keyboard_mapping_blocked,
                      _port, RETRO_DEVICE_JOYPAD, 0,
                      RETRO_DEVICE_ID_JOYPAD_MASK);
+            cached |= input_st->injected_buttons[_port];
+            MOBOALIEN_LOG("[ISW-individual] port=%u injected=0x%08x phys=0x%08x cached=0x%08x",
+                  _port, input_st->injected_buttons[_port],
+                  cached & ~input_st->injected_buttons[_port], cached);
             input_st->joypad_state_cache[_port]       = cached;
             input_st->joypad_state_cache_valid[_port]  = true;
          }
@@ -927,6 +935,40 @@ static int32_t input_state_wrap(
             idx,
             id);
 
+   if (    (device == RETRO_DEVICE_MOUSE || device == RARCH_DEVICE_MOUSE_SCREEN)
+        && _port < MAX_USERS)
+   {
+      input_driver_state_t *input_st = &input_driver_st;
+      switch (id)
+      {
+         case RETRO_DEVICE_ID_MOUSE_X:
+            ret += input_st->injected_mouse_x_delta[_port];
+            input_st->injected_mouse_x_delta[_port] = 0;
+            break;
+         case RETRO_DEVICE_ID_MOUSE_Y:
+            ret += input_st->injected_mouse_y_delta[_port];
+            input_st->injected_mouse_y_delta[_port] = 0;
+            break;
+         case RETRO_DEVICE_ID_MOUSE_LEFT:
+            ret |= (input_st->injected_mouse_buttons[_port] >> 0) & 1;
+            break;
+         case RETRO_DEVICE_ID_MOUSE_RIGHT:
+            ret |= (input_st->injected_mouse_buttons[_port] >> 1) & 1;
+            break;
+         case RETRO_DEVICE_ID_MOUSE_MIDDLE:
+            ret |= (input_st->injected_mouse_buttons[_port] >> 2) & 1;
+            break;
+         case RETRO_DEVICE_ID_MOUSE_WHEELUP:
+            ret |= input_st->injected_mouse_wu[_port];
+            input_st->injected_mouse_wu[_port] = 0;
+            break;
+         case RETRO_DEVICE_ID_MOUSE_WHEELDOWN:
+            ret |= input_st->injected_mouse_wd[_port];
+            input_st->injected_mouse_wd[_port] = 0;
+            break;
+      }
+   }
+
    /* Populate the per-port joypad cache from the MASK result so that
     * subsequent individual button queries (from hybrid or old-style
     * cores) can be served from cache without a second joypad->state()
@@ -939,8 +981,21 @@ static int32_t input_state_wrap(
       input_driver_state_t *input_st = &input_driver_st;
       if (!input_st->joypad_state_cache_valid[_port])
       {
-         input_st->joypad_state_cache[_port]       = ret;
+         input_st->joypad_state_cache[_port]       = ret | input_st->injected_buttons[_port];
          input_st->joypad_state_cache_valid[_port]  = true;
+         MOBOALIEN_LOG("[ISW-MASK] port=%u injected=0x%08x phys=0x%08x cache=0x%08x",
+               _port, input_st->injected_buttons[_port], ret,
+               input_st->joypad_state_cache[_port]);
+      }
+      else
+      {
+         /* Cache already valid (patched by collect_system_input).
+          * Return the cache value so injected bits are included. */
+         if (input_st->injected_buttons[_port])
+            MOBOALIEN_LOG("[ISW-MASK-HIT] port=%u cache_already_valid injected=0x%08x cache=0x%08x raw_ret=0x%08x",
+                  _port, input_st->injected_buttons[_port],
+                  input_st->joypad_state_cache[_port], ret);
+         return input_st->joypad_state_cache[_port];
       }
    }
 
@@ -2282,6 +2337,17 @@ static int16_t input_state_internal(
    struct menu_state *menu_st              = menu_state_get_ptr();
    bool input_blocked                      =    (menu_st->input_driver_flushing_input > 0)
                                              || (input_st->flags & INP_FLAG_BLOCK_LIBRETRO_INPUT);
+   /* MoboAlien debug: log if input is blocked while buttons are injected */
+   if (input_blocked && device == RETRO_DEVICE_JOYPAD)
+   {
+      unsigned _dbg_p;
+      for (_dbg_p = 0; _dbg_p < MAX_USERS; _dbg_p++)
+         if (input_st->injected_buttons[_dbg_p])
+            MOBOALIEN_LOG("[BLOCKED] injected[%u]=0x%08x flushing=%d flags=0x%x",
+                  _dbg_p, input_st->injected_buttons[_dbg_p],
+                  menu_st->input_driver_flushing_input,
+                  input_st->flags);
+   }
 #else
    bool input_blocked                      = (input_st->flags & INP_FLAG_BLOCK_LIBRETRO_INPUT) ? true : false;
 #endif
@@ -6477,6 +6543,100 @@ void input_overlay_init(void)
 }
 #endif
 
+// ---------------------------------------------------------------------------
+// MoboAlien cross-platform input injection bridge
+// ---------------------------------------------------------------------------
+void moboalien_inject_key(int port, int keycode, int down)
+{
+   MOBOALIEN_LOG("[INJECT] port=%d keycode=%d down=%d", port, keycode, down);
+   input_driver_state_t *input_st = &input_driver_st;
+
+   if (port < 0 || port >= DEFAULT_MAX_PADS)
+   {
+      MOBOALIEN_LOG("inject_key: port %d out of range [0,%d)", port, DEFAULT_MAX_PADS);
+      return;
+   }
+   if (keycode < 0 || keycode >= 16)
+   {
+      MOBOALIEN_LOG("inject_key: keycode %d out of range [0,16)", keycode);
+      return;
+   }
+
+   if (!(input_st->injected_registered_ports & (1u << port)))
+   {
+      input_pad_connect(port, (input_device_driver_t*)input_st->primary_joypad);
+      input_st->injected_registered_ports |= (1u << port);
+   }
+
+   if (down)
+      input_st->injected_buttons[port] |=  (1 << keycode);
+   else
+      input_st->injected_buttons[port] &= ~(1 << keycode);
+   MOBOALIEN_LOG("inject_key: port=%d keycode=%d down=%d injected_buttons=0x%08x",
+         port, keycode, down, input_st->injected_buttons[port]);
+}
+
+void moboalien_inject_hotkey(int retrok, int down)
+{
+   input_keyboard_event(down, retrok, retrok, 0, RETRO_DEVICE_KEYBOARD);
+}
+
+void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute)
+{
+   input_driver_state_t *input_st = &input_driver_st;
+
+   if (port < 0 || port >= DEFAULT_MAX_PADS)
+      return;
+
+   if (is_absolute)
+   {
+      /* Store absolute position as delta from zero so the driver
+       * can treat it uniformly; the driver is responsible for
+       * interpreting is_absolute if it needs to. For now we
+       * accumulate into the delta fields and let the driver read. */
+      input_st->injected_mouse_x_delta[port] = x;
+      input_st->injected_mouse_y_delta[port] = y;
+   }
+   else
+   {
+      input_st->injected_mouse_x_delta[port] += x;
+      input_st->injected_mouse_y_delta[port] += y;
+   }
+}
+
+void moboalien_inject_mouse_button(int port, int button, int down)
+{
+   input_driver_state_t *input_st = &input_driver_st;
+
+   if (port < 0 || port >= DEFAULT_MAX_PADS)
+      return;
+
+   if (down)
+      input_st->injected_mouse_buttons[port] |=  (1 << button);
+   else
+      input_st->injected_mouse_buttons[port] &= ~(1 << button);
+}
+
+void moboalien_inject_mouse_wheel(int port, int delta)
+{
+   input_driver_state_t *input_st = &input_driver_st;
+
+   if (port < 0 || port >= DEFAULT_MAX_PADS)
+      return;
+
+   if (delta > 0)
+      input_st->injected_mouse_wu[port] = 1;
+   else if (delta < 0)
+      input_st->injected_mouse_wd[port] = 1;
+}
+
+void moboalien_command_event(int cmd)
+{
+   input_driver_state_t *input_st = &input_driver_st;
+   MOBOALIEN_LOG("[CMD] moboalien_command_event: queuing cmd=%d", cmd);
+   input_st->injected_cmd_pending = cmd;
+}
+
 void input_pad_connect(unsigned port, input_device_driver_t *driver)
 {
    if (port >= MAX_USERS || !driver)
@@ -6974,6 +7134,20 @@ void input_driver_poll(void)
    /* Invalidate joypad state bitmask cache for the new frame */
    memset(input_st->joypad_state_cache_valid, 0,
          sizeof(input_st->joypad_state_cache_valid));
+
+   /* MoboAlien: log injected state and do_remap flag once per frame */
+   {
+      unsigned _p;
+      for (_p = 0; _p < MAX_USERS; _p++)
+         if (input_st->injected_buttons[_p])
+            MOBOALIEN_LOG("[POLL] port=%u injected=0x%08x", _p, input_st->injected_buttons[_p]);
+   }
+#ifdef HAVE_MENU
+   MOBOALIEN_LOG("[POLL] do_remap=%d menu_alive=%d",
+         (int)(settings->bools.input_remap_binds_enable &&
+               !(menu_state_get_ptr()->flags & MENU_ST_FLAG_ALIVE)),
+         (int)!!(menu_state_get_ptr()->flags & MENU_ST_FLAG_ALIVE));
+#endif
 
    /* Enable/disable sensors at the driver level based on demand
     * from shaders and/or core. Setting gates everything. */
@@ -7547,6 +7721,16 @@ int16_t input_driver_state_wrapper(unsigned port, unsigned device,
    /* Read input state */
    result = input_state_internal(input_st, settings, port, device, idx, id);
 
+   /* MoboAlien: log what the core receives for injected ports */
+   if (    device == RETRO_DEVICE_JOYPAD
+        && port   <  MAX_USERS
+        && input_st->injected_buttons[port])
+      MOBOALIEN_LOG("[CORE-INPUT] port=%u id=%u result=%d injected=0x%08x cache=0x%08x cache_valid=%d",
+            port, id, (int)result,
+            input_st->injected_buttons[port],
+            input_st->joypad_state_cache[port],
+            (int)input_st->joypad_state_cache_valid[port]);
+
    /* Register any analog stick input requests for
     * this 'virtual' (core) port */
    if (     (device == RETRO_DEVICE_ANALOG)
@@ -7821,6 +8005,27 @@ void input_remapping_set_defaults(bool clear_cache)
 void input_driver_collect_system_input(input_driver_state_t *input_st,
       settings_t *settings, input_bits_t *current_bits)
 {
+   /* MoboAlien: consume pending command event queued from network thread */
+   {
+      int pending_cmd = input_st->injected_cmd_pending;
+      if (pending_cmd)
+      {
+         MOBOALIEN_LOG("[CMD] collect_system_input: consuming cmd=%d", pending_cmd);
+         input_st->injected_cmd_pending = 0;
+         command_event((enum event_command)pending_cmd, NULL);
+      }
+   }
+
+   /* MoboAlien: log injected state at entry */
+   {
+      unsigned _p;
+      for (_p = 0; _p < MAX_USERS; _p++)
+         if (input_st->injected_buttons[_p])
+            MOBOALIEN_LOG("[COLLECT] entry port=%u injected=0x%08x cache_valid=%d cache=0x%08x",
+                  _p, input_st->injected_buttons[_p],
+                  (int)input_st->joypad_state_cache_valid[_p],
+                  input_st->joypad_state_cache[_p]);
+   }
    rarch_joypad_info_t joypad_info;
    input_driver_t *input               = input_st->current_driver;
    const input_device_driver_t *joypad = input_st->primary_joypad;
@@ -7848,6 +8053,18 @@ void input_driver_collect_system_input(input_driver_state_t *input_st,
    /* Gather input from each (enabled) joypad */
    for (port = 0; port < (int)max_users; port++)
    {
+      /* Always OR injected buttons into the cache, regardless of cache_valid.
+      * The remap loop may have already set cache_valid=true with injected=0
+      * (injection is asynchronous), so we must patch the cache here. */
+      if (port < MAX_USERS && input_st->injected_buttons[port])
+      {
+         input_st->joypad_state_cache[port] |= input_st->injected_buttons[port];
+         MOBOALIEN_LOG("[COLLECT-PATCH] port=%u injected=0x%08x cache_after=0x%08x cache_valid=%d",
+               port, input_st->injected_buttons[port],
+               input_st->joypad_state_cache[port],
+               (int)input_st->joypad_state_cache_valid[port]);
+      }
+
       const struct retro_keybind *binds_norm = &input_config_binds[port][RARCH_ENABLE_HOTKEY];
       const struct retro_keybind *binds_auto = NULL;
 
@@ -7967,6 +8184,12 @@ void input_driver_collect_system_input(input_driver_state_t *input_st,
             settings->bools.input_hotkey_device_merge);
 
 #ifdef HAVE_MENU
+      if (menu_is_alive && port < MAX_USERS && input_st->injected_buttons[port])
+         current_bits->data[0] |= input_st->injected_buttons[port];
+         MOBOALIEN_LOG("[COLLECT-RESULT] port=%u injected=0x%08x current_bits[0]=0x%08x",
+               port, input_st->injected_buttons[port],
+               current_bits->data[0]);
+
       if (menu_is_alive)
       {
          if (!all_users_control_menu)

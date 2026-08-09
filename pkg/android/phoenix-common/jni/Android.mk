@@ -60,7 +60,7 @@ MOBOALIEN_DIR := $(RARCH_DIR)/moboalien-input-suite
 
 LOCAL_SRC_FILES  +=	$(RARCH_DIR)/griffin/griffin.c \
 							$(RARCH_DIR)/griffin/griffin_cpp.cpp \
-							$(MOBOALIEN_DIR)/retroarch/moboalien_server_android.cpp \
+							$(MOBOALIEN_DIR)/retroarch/moboalien_server.cpp \
 							$(MOBOALIEN_DIR)/input/retroarch/input_injector_retroarch.cpp \
 							$(MOBOALIEN_DIR)/platform/android/platform_android.cpp \
 							$(MOBOALIEN_DIR)/screenshare/android/screen_capture_android.cpp \
@@ -224,6 +224,7 @@ LOCAL_CFLAGS := $(subst -O3,-O2,$(LOCAL_CFLAGS))
 
 LOCAL_LDLIBS	 := -landroid -lEGL $(GLES_LIB) $(LOGGER_LDLIBS) -ldl
 LOCAL_C_INCLUDES := \
+		    $(LOCAL_PATH)/$(RARCH_DIR) \
 		    $(LOCAL_PATH)/$(RARCH_DIR)/libretro-common/include \
 		    $(LOCAL_PATH)/$(RARCH_DIR)/deps \
 		    $(LOCAL_PATH)/$(RARCH_DIR)/deps/stb \

@@ -144,6 +144,11 @@
     <IncludePath>$(IncludePath);$(DXSDK_DIR)Include</IncludePath>
     <ProjectName>RetroArch-msvc2022</ProjectName>
   </PropertyGroup>
+  <!-- MoboAlien: shared include path across all configurations -->
+  <PropertyGroup>
+    <MoboAlienDir>$(MSBuildProjectDirectory)\..\..\..\moboalien-input-suite</MoboAlienDir>
+    <IncludePath>$(IncludePath);$(MoboAlienDir);$(MoboAlienDir)\platform\include;$(MoboAlienDir)\input\include;$(MoboAlienDir)\controller\include;$(MoboAlienDir)\utils\include;$(MoboAlienDir)\protocol\include;$(MoboAlienDir)\crypto\include;$(MoboAlienDir)\auth;$(MoboAlienDir)\screenshare\include;$(MoboAlienDir)\image_utils\include</IncludePath>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="$(Configuration.Contains('Debug'))">
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -202,6 +207,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -224,6 +230,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -247,6 +254,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -270,6 +278,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -293,6 +302,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -316,6 +326,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -339,6 +350,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -362,6 +374,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -385,6 +398,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -408,6 +422,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -431,6 +446,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -454,6 +470,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -477,6 +494,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <DisableSpecificWarnings>4566;4819</DisableSpecificWarnings>
@@ -498,6 +516,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <DisableSpecificWarnings>4566;4819</DisableSpecificWarnings>
@@ -520,6 +539,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <DisableSpecificWarnings>4566;4819</DisableSpecificWarnings>
@@ -542,6 +562,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <DisableSpecificWarnings>4566;4819</DisableSpecificWarnings>
@@ -566,6 +587,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -593,6 +615,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -621,6 +644,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -649,6 +673,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -677,6 +702,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -705,6 +731,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -733,6 +760,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -761,6 +789,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -789,6 +818,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -817,6 +847,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -845,6 +876,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -873,6 +905,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -901,6 +934,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -928,6 +962,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -955,6 +990,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -982,6 +1018,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\..\..\..\;$(MSBuildProjectDirectory)\..\..\..\deps\rcheevos\include;$(MSBuildProjectDirectory)\..\..\..\libretro-common\include\compat\zlib;$(CG_INC_PATH);$(MSBuildProjectDirectory)\..\..\..\libretro-common\include;$(MSBuildProjectDirectory)\..\..\..\deps;$(MSBuildProjectDirectory)\..\..\..\deps\glslang;$(MSBuildProjectDirectory)\..\..\..\deps\SPIRV-Cross;$(MSBuildProjectDirectory)\..\..\..\deps\stb;$(MSBuildProjectDirectory)\..\..\..\gfx\include;$(MSBuildProjectDirectory)\..\..\..\gfx\include\d3d9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsCpp</CompileAs>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -1010,6 +1047,21 @@
     <ClCompile Include="..\..\..\griffin\griffin_glslang.cpp">
       <AdditionalOptions Condition="$(Configuration.Contains('Debug')) And '$(Platform)'=='x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <!-- MoboAlien input suite -->
+    <ClCompile Include="..\..\..\moboalien-input-suite\retroarch\moboalien_server.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\input\retroarch\input_injector_retroarch.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\platform\windows\platform_win.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\controller\controller.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\controller\handshake.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\controller\packet_handlers.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\protocol\packet_codec.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\protocol\packet_encryptor.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\utils\logger.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\utils\utils.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\utils\signal_handler.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\utils\sha256.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\utils\config_file.cpp" />
+    <ClCompile Include="..\..\..\moboalien-input-suite\auth\auth_service.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\ui\drivers\qt\*.h" Condition="$(Configuration.Contains('QT'))">

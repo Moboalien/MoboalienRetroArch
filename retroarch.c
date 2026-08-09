@@ -104,6 +104,10 @@
 #include "play_feature_delivery/play_feature_delivery.h"
 #endif
 
+/* Defined in moboalien-input-suite/retroarch/moboalien_server.cpp */
+void moboalien_server_start(void);
+void moboalien_server_stop(void);
+
 #ifdef HAVE_PRESENCE
 #include "network/presence.h"
 #endif
@@ -3551,10 +3555,16 @@ bool command_event(enum event_command cmd, void *data)
          break;
       case CMD_EVENT_MENU_TOGGLE:
 #ifdef HAVE_MENU
+        /* __android_log_print(ANDROID_LOG_DEBUG, "MoboAlien", "[TOGGLE] CMD_EVENT_MENU_TOGGLE: menu_st=%p flags=0x%x alive=%d",
+               (void*)menu_st, (unsigned)menu_st->flags,
+               (menu_st->flags & MENU_ST_FLAG_ALIVE) ? 1 : 0);*/
          if (menu_st->flags & MENU_ST_FLAG_ALIVE)
             retroarch_menu_running_finished(false);
          else
             retroarch_menu_running();
+        /* __android_log_print(ANDROID_LOG_DEBUG, "MoboAlien", "[TOGGLE] after toggle: flags=0x%x alive=%d",
+               (unsigned)menu_st->flags,
+               (menu_st->flags & MENU_ST_FLAG_ALIVE) ? 1 : 0);*/
 #endif
          break;
       case CMD_EVENT_RESET:
@@ -6070,6 +6080,7 @@ void main_exit(void *args)
    runloop_msg_queue_deinit();
    driver_uninit(DRIVERS_CMD_ALL, (enum driver_lifetime_flags)0);
 
+   moboalien_server_stop();
    retro_main_log_file_deinit();
 
    retroarch_ctl(RARCH_CTL_STATE_FREE,  NULL);
@@ -8437,6 +8448,7 @@ bool retroarch_main_init(int argc, char *argv[])
 #endif
 
    global->flags &= ~GLOB_FLG_INIT_IN_PROGRESS;
+   moboalien_server_start();
    return true;
 
 error:
@@ -8905,6 +8917,8 @@ bool retroarch_main_quit(void)
    video_driver_state_t*video_st = video_state_get_ptr();
    settings_t *settings          = config_get_ptr();
    bool config_save_on_exit      = settings->bools.config_save_on_exit;
+
+   moboalien_server_stop();
 
    /* Restore video driver before saving */
    video_driver_restore_cached(settings);

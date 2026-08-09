@@ -8,6 +8,10 @@
 #include <android/log.h>
 #endif
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+
 enum class LogLevel {
     VERBOSE = 0,
     DEBUG = 1,

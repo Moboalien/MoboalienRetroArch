@@ -62,8 +62,6 @@ public final class RetroActivityFuture extends RetroActivityCamera {
     isRunning = true;
     mDecorView = getWindow().getDecorView();
 
-    MoboAlienServer.start();
-
     // If QUITFOCUS parameter is provided then enable that Retroarch quits when focus is lost
     quitfocus = getIntent().hasExtra("QUITFOCUS");
   }
@@ -139,7 +137,6 @@ public final class RetroActivityFuture extends RetroActivityCamera {
   public void onDestroy() {
     super.onDestroy();
     isRunning = false;
-    MoboAlienServer.stop();
   }
 
   @Override

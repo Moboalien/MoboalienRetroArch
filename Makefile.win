@@ -156,6 +156,11 @@ $(OBJDIR)/%.o: %.c
 	@$(if $(Q), $(shell echo echo CC $<),)
 	$(Q)$(CC) $(CFLAGS) $(DEFINES) -MMD -c -o $@ $<
 
+$(OBJDIR)/moboalien-input-suite/%.o: moboalien-input-suite/%.cpp | $(dir $@)
+	@-mkdir -p $(dir $@) || mkdir $(subst /,\,$(dir $@)) || echo .
+	@$(if $(Q), $(shell echo echo CXX $<),)
+	$(Q)$(CXX) $(CXXFLAGS) -std=c++17 $(DEFINES) -MMD -c -o $@ $<
+
 $(OBJDIR)/%.o: %.cpp | $(dir $@)
 	@-mkdir -p $(dir $@) || mkdir $(subst /,\,$(dir $@)) || echo .
 	@$(if $(Q), $(shell echo echo CXX $<),)

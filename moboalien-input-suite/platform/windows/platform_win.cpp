@@ -1,4 +1,7 @@
 #include "platform.h"
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #define WIN32_LEAN_AND_MEAN
 #include <memory>
 #include <windows.h>
@@ -13,7 +16,6 @@
 #include <avrt.h>
 #pragma comment(lib, "Avrt.lib")
 #include "utils.h"
-#define NOMINMAX
 static const char* TAG = "PlatformWin";
 
 class PlatformWin final : public Platform {

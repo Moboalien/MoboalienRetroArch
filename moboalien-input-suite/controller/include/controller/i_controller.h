@@ -6,8 +6,9 @@
 #include "platform.h"
 #include "packet_encryptor.h"
 #include "i_input_injector.h"
-#include "i_image_encoder.h"
-#include "screen_capture.h"
+
+class IImageEncoder;
+class IScreenCapture;
 
 enum class ServerType : uint8_t;
 

@@ -1,4 +1,6 @@
+#ifdef ANDROID
 #include <jni.h>
+#endif
 #include <memory>
 #include <atomic>
 #include <thread>
@@ -11,7 +13,7 @@
 #include "signal_handler.h"
 #include "logger.h"
 
-static const char* TAG = "MoboAlienServerAndroid";
+static const char* TAG = "MoboAlienServer";
 
 // ---------------------------------------------------------------------------
 // Global server state (one instance per process)
@@ -23,6 +25,7 @@ static std::unique_ptr<IController>      g_controller;
 static std::unique_ptr<HandshakeManager> g_handshake;
 static std::thread                       g_serverThread;
 
+#ifdef ANDROID
 static JavaVM* g_jvm = nullptr;
 
 // ---------------------------------------------------------------------------
@@ -33,22 +36,20 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
     g_jvm = vm;
     return JNI_VERSION_1_6;
 }
+#endif
 
 // ---------------------------------------------------------------------------
-// MoboAlienServer.nativeStart
+// moboalien_server_start / moboalien_server_stop (C API)
 // ---------------------------------------------------------------------------
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_retroarch_browser_retroactivity_MoboAlienServer_nativeStart(
-        JNIEnv*, jclass) {
-
+extern "C" void moboalien_server_start(void) {
     if (g_controller) {
-        LOGW(TAG, "nativeStart called while already running");
+        LOGW(TAG, "moboalien_server_start called while already running");
         return;
     }
 
     SignalHandler::resetShutdown();
-    LOGI(TAG, "nativeStart: initializing");
+    LOGI(TAG, "moboalien_server_start: initializing");
 
     g_platform   = CreatePlatform();
     g_injector   = CreateInputInjector();
@@ -76,7 +77,7 @@ Java_com_retroarch_browser_retroactivity_MoboAlienServer_nativeStart(
     );
 
     g_handshake->Start();
-    LOGI(TAG, "nativeStart: listening — controller port " +
+    LOGI(TAG, "moboalien_server_start: listening — controller port " +
          std::to_string(g_controller->GetControllerPort()));
 
     // Run the blocking controller loop on a background thread
@@ -87,15 +88,13 @@ Java_com_retroarch_browser_retroactivity_MoboAlienServer_nativeStart(
     });
 }
 
-// ---------------------------------------------------------------------------
-// MoboAlienServer.nativeStop
-// ---------------------------------------------------------------------------
+extern "C" void moboalien_server_stop(void) {
+    if (!g_controller) {
+        LOGW(TAG, "moboalien_server_stop called while not running");
+        return;
+    }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_retroarch_browser_retroactivity_MoboAlienServer_nativeStop(
-        JNIEnv*, jclass) {
-
-    LOGI(TAG, "nativeStop: requesting shutdown");
+    LOGI(TAG, "moboalien_server_stop: requesting shutdown");
     SignalHandler::requestShutdown();
 
     if (g_serverThread.joinable())
@@ -107,5 +106,23 @@ Java_com_retroarch_browser_retroactivity_MoboAlienServer_nativeStop(
     g_platform.reset();
 
     SignalHandler::resetShutdown();
-    LOGI(TAG, "nativeStop complete");
+    LOGI(TAG, "moboalien_server_stop complete");
 }
+
+#ifdef ANDROID
+// ---------------------------------------------------------------------------
+// JNI wrappers for MoboAlienServer (backward compatibility)
+// ---------------------------------------------------------------------------
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_retroarch_browser_retroactivity_MoboAlienServer_nativeStart(
+        JNIEnv*, jclass) {
+    moboalien_server_start();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_retroarch_browser_retroactivity_MoboAlienServer_nativeStop(
+        JNIEnv*, jclass) {
+    moboalien_server_stop();
+}
+#endif

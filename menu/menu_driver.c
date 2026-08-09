@@ -6519,12 +6519,19 @@ void retroarch_menu_running(void)
    menu_handle_t *menu             = menu_st->driver_data;
    menu_input_t *menu_input        = &menu_st->input_state;
 
+   /*__android_log_print(ANDROID_LOG_DEBUG, "MoboAlien", "[MENU_RUNNING] menu=%p driver_data=%p flags=0x%x",
+         (void*)menu, (void*)menu_st->driver_data, (unsigned)menu_st->flags);*/
+
    if (menu)
    {
+      /*__android_log_print(ANDROID_LOG_DEBUG, "MoboAlien", "[MENU_RUNNING] driver_ctx=%p toggle=%p",
+            (void*)menu->driver_ctx,
+            menu->driver_ctx ? (void*)menu->driver_ctx->toggle : NULL);*/
       if (menu->driver_ctx && menu->driver_ctx->toggle)
          menu->driver_ctx->toggle(menu->userdata, true);
 
       menu_st->flags |= MENU_ST_FLAG_ALIVE;
+      //__android_log_print(ANDROID_LOG_DEBUG, "MoboAlien", "[MENU_RUNNING] ALIVE set, flags=0x%x", (unsigned)menu_st->flags);
       menu_driver_toggle(
             video_st->current_video,
             video_st->data,

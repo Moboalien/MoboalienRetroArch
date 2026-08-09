@@ -644,6 +644,22 @@ typedef struct
    /* primitives */
    bool analog_requested[MAX_USERS];
 
+   /* MoboAlien cross-platform input injection state.
+    * injected_buttons: per-port joypad button bitmask, OR'd into the
+    *   joypad_state_cache at cache-fill time in input_state_wrap().
+    * injected_mouse_*: per-port mouse state, read by the active input
+    *   driver's input_state() for RETRO_DEVICE_MOUSE queries.
+    * injected_registered_ports: bitmask of ports that have already had
+    *   input_pad_connect() called, to avoid repeated registration. */
+   int32_t  injected_buttons[MAX_USERS];
+   int      injected_mouse_x_delta[MAX_USERS];
+   int      injected_mouse_y_delta[MAX_USERS];
+   int      injected_mouse_buttons[MAX_USERS];
+   int      injected_mouse_wu[MAX_USERS];
+   int      injected_mouse_wd[MAX_USERS];
+   uint32_t injected_registered_ports;
+   volatile int injected_cmd_pending; /* written from network thread, consumed on main thread */
+
    /* Per-port joypad state bitmask cache.
     * Populated lazily on the first JOYPAD query for each mapped_port
     * within a frame, then reused for subsequent individual button
@@ -679,6 +695,12 @@ typedef struct
    unsigned core_gyro_rate;  /* >0 means core wants gyro at this rate */
 } input_driver_state_t;
 
+void moboalien_inject_key(int port, int keycode, int down);
+void moboalien_inject_hotkey(int retrok, int down);
+void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute);
+void moboalien_inject_mouse_button(int port, int button, int down);
+void moboalien_inject_mouse_wheel(int port, int delta);
+void moboalien_command_event(int cmd);
 
 void input_driver_init_joypads(void);
 

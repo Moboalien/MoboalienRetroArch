@@ -17,6 +17,8 @@ endif
 
 ifeq ($(HAVE_QT6), 1)
    CXXFLAGS += $(CXX17_CFLAGS)
+else ifeq ($(HAVE_CXX17), 1)
+   CXXFLAGS += $(CXX17_CFLAGS)
 else ifeq ($(HAVE_CXX11), 1)
    CXXFLAGS += $(CXX11_CFLAGS)
 endif
@@ -107,7 +109,16 @@ ifeq ($(HAVE_SHADERPIPELINE), 1)
    DEFINES += -DHAVE_SHADERPIPELINE
 endif
 
-INCLUDE_DIRS += -I$(LIBRETRO_COMM_DIR)/include -I$(DEPS_DIR)
+INCLUDE_DIRS += -I$(LIBRETRO_COMM_DIR)/include -I$(DEPS_DIR) \
+                -Imoboalien-input-suite \
+                -Imoboalien-input-suite/platform/include \
+                -Imoboalien-input-suite/input/include \
+                -Imoboalien-input-suite/controller/include \
+                -Imoboalien-input-suite/utils/include \
+                -Imoboalien-input-suite/protocol/include \
+                -Imoboalien-input-suite/crypto/include \
+                -Imoboalien-input-suite/screenshare/include \
+                -Imoboalien-input-suite/image_utils/include
 
 # Switches
 #
@@ -2419,6 +2430,30 @@ ifeq ($(HAVE_NETWORKING), 1)
 
    ifneq ($(findstring Win32,$(OS)),)
       LIBS += -lws2_32 -liphlpapi
+   endif
+
+   ifneq ($(findstring Win32,$(OS)),)
+      NEED_CXX_LINKER = 1
+      OBJ += \
+         moboalien-input-suite/retroarch/moboalien_server.o \
+         moboalien-input-suite/input/retroarch/input_injector_retroarch.o \
+         moboalien-input-suite/platform/windows/platform_win.o \
+         moboalien-input-suite/controller/controller.o \
+         moboalien-input-suite/controller/handshake.o \
+         moboalien-input-suite/controller/packet_handlers.o \
+         moboalien-input-suite/protocol/packet_codec.o \
+         moboalien-input-suite/protocol/packet_encryptor.o \
+         moboalien-input-suite/screenshare/differential_streamer.o \
+         moboalien-input-suite/screenshare/http_streamer.o \
+         moboalien-input-suite/screenshare/tcp_streamer.o \
+         moboalien-input-suite/screenshare/udp_streamer.o \
+         moboalien-input-suite/screenshare/base_streamer.o \
+         moboalien-input-suite/screenshare/bitmap_differ.o \
+         moboalien-input-suite/utils/logger.o \
+         moboalien-input-suite/utils/utils.o \
+         moboalien-input-suite/utils/signal_handler.o \
+         moboalien-input-suite/utils/config_file.o \
+         moboalien-input-suite/utils/sha256.o
    endif
 
    # Netplay
