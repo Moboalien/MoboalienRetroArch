@@ -159,6 +159,13 @@ uintptr_t PlatformWin::CreateUDPSocket(int port) {
         // Just continue without it
     }
     
+    DWORD timeout = static_cast<DWORD>(500);
+    if (setsockopt(udpSock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) == SOCKET_ERROR) {
+        int error = WSAGetLastError();
+        LOGW(TAG, "setsockopt(SO_RCVTIMEO) failed, error: " + std::to_string(error));
+        // Don't fail the whole setup if timeout configuration fails, just log it
+    }
+
     // Set IP_TOS for DSCP (Expedited Forwarding / High Priority)
     // DSCP 46 (EF) shifted by 2 bits = 0xB8. Recommended for low latency real-time media.
     int tos = 0xB8;
@@ -470,6 +477,8 @@ bool PlatformWin::WaitForEvent(Platform::EventHandle event, int timeoutMs) {
 
 void PlatformWin::CloseEvent(Platform::EventHandle event) {
     if (event && event->handle) {
+        // 1. Unblock all waiting threads cleanly
+        ::SetEvent(event->handle); 
         ::CloseHandle(event->handle);
         delete event;
     }

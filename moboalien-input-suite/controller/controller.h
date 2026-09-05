@@ -18,6 +18,7 @@ public:
     ~Controller();
 
     void Run() override;
+    void Stop() override;
     void SetMinPressDuration(int ms) override;
 
     // IController port accessors
@@ -45,5 +46,7 @@ private:
     uintptr_t m_udpSocket;
     Platform::SharedMemoryHandle m_sharedMemoryHandle;
     Platform::ThreadHandle m_accumulatorThreadHandle;
+    bool m_running;
+    uint64_t m_shutdownCallbackId = 0;
     uint16_t m_controllerPort;
 };

@@ -16,7 +16,7 @@ public final class MoboAlienServer {
 
     public static void start() {
         try {
-            nativeStart();
+            //nativeStart();
             Log.i(TAG, "MoboAlien server started");
         } catch (Exception e) {
             Log.e(TAG, "Failed to start MoboAlien server: " + e.getMessage());
@@ -25,7 +25,7 @@ public final class MoboAlienServer {
 
     public static void stop() {
         try {
-            nativeStop();
+            //nativeStop();
             Log.i(TAG, "MoboAlien server stopped");
         } catch (Exception e) {
             Log.e(TAG, "Failed to stop MoboAlien server: " + e.getMessage());

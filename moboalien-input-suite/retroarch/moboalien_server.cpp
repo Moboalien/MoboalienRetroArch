@@ -56,12 +56,14 @@ extern "C" void moboalien_server_start(void) {
     g_controller = CreateController(
         g_platform.get(),
         g_injector.get(),
-        /*verbose=*/true,
+        /*verbose=*/false,
         ServerType::RETROARCH,
         /*packetEncryptor=*/nullptr,
         /*imageEncoder=*/nullptr,
         /*screenCapture=*/nullptr
     );
+
+    g_controller->SetMinPressDuration(20);
 
     g_handshake = std::make_unique<HandshakeManager>(
         g_platform.get(),

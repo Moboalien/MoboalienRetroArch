@@ -79,13 +79,17 @@ Controller::Controller(Platform* platform, IInputInjector* inputInjector, bool v
     {
         LOGE(TAG, "CreateUDPSocket failed");
     }
-
-    if (m_context.verbose) LOGI(TAG, "Starting accumulator thread...");
-    m_platform->CreateThread(&m_accumulatorThreadHandle, accumulatorThreadEntry, this);
     if (m_context.verbose) LOGI(TAG, "Controller initialized successfully");
 }
 
-Controller::~Controller() {
+void Controller::Stop()
+{
+    m_running = false;
+    if (m_accumulatorThreadHandle) {
+        m_platform->JoinThread(m_accumulatorThreadHandle);
+        m_accumulatorThreadHandle = nullptr;
+    }
+
     // Release all held keys to prevent them from getting stuck on exit
     if (m_inputInjector && m_inputInjector->IsAvailable()) {
         std::lock_guard<std::mutex> lock(m_context.clientsMutex);
@@ -104,11 +108,6 @@ Controller::~Controller() {
             }
         }
     }
-    if (m_accumulatorThreadHandle) {
-        // This is tricky without a proper shutdown signal.
-        // In a real app, you'd signal the thread to exit.
-        m_platform->DetachThread(m_accumulatorThreadHandle);
-    }
     if (m_sharedMemoryHandle) {
         m_platform->CloseSharedMemory(m_sharedMemoryHandle);
     }
@@ -117,6 +116,12 @@ Controller::~Controller() {
     }
     m_platform->CloseEvent(m_context.stateUpdateEvent);
     m_platform->SocketsCleanup();
+}
+
+Controller::~Controller() {
+    if (m_running)
+        Stop();
+    LOGI(TAG, "Controller destroyed");
 }
 
 Platform::SharedMemoryHandle Controller::initializeSharedMemory(SharedInput** outSharedInput) {
@@ -139,9 +144,20 @@ Platform::SharedMemoryHandle Controller::initializeSharedMemory(SharedInput** ou
 }
 
 void Controller::Run() {
+    if (m_shutdownCallbackId == 0) {
+        m_shutdownCallbackId = SignalHandler::getInstance().registerCallback([this]() {
+            LOGI(TAG, "Controller shutdown callback triggered");
+            this->Stop();
+        });
+    }
+    
+    m_running = true;
+    if (m_context.verbose) LOGI(TAG, "Starting accumulator thread...");
+    m_platform->CreateThread(&m_accumulatorThreadHandle, accumulatorThreadEntry, this);
+
     char packetBuffer[1024];
     if (m_context.verbose) LOGI(TAG, "Controller loop started");
-    while (!SignalHandler::isShutdownRequested()) {
+    while (m_running) {
         std::string clientKey;
         int clientPort;
         int bytesReceived = m_platform->RecvFrom(m_udpSocket, packetBuffer, sizeof(packetBuffer), 0, clientKey, clientPort);
@@ -277,10 +293,10 @@ void Controller::accumulatorThreadFunction() {
     const int tick_ms = 1;
     m_platform->SetCurrentThreadHighPriority();
     m_platform->SetTimerResolution(tick_ms);
-    if (m_context.verbose) {
-        LOGI(TAG, "Started Accumulator Thread");
-    }
-    while (true) {
+    
+    LOGI(TAG, "Started Accumulator Thread");
+    
+    while (m_running) {
         m_platform->WaitForEvent(m_context.stateUpdateEvent, tick_ms);
         uint64_t now = m_platform->GetTickCountMs();
         
@@ -312,7 +328,7 @@ void Controller::accumulatorThreadFunction() {
         }
 
         if (hasNoClients) {
-            m_platform->Sleep(1000);
+            m_platform->WaitForEvent(m_context.stateUpdateEvent, 1000);
             continue;
         }
 
@@ -387,11 +403,35 @@ void Controller::accumulatorThreadFunction() {
             }
 
             if (m_inputInjector->IsAvailable()) {
+                auto printKeyState = [](const std::unordered_map<int, bool>& keyState, const std::string& prefix) {
+                    std::string out = prefix + ": ";
+                    for (const auto& pair : keyState) {
+                        if (pair.second) out += std::to_string(pair.first) + " ";
+                    }
+                    LOGI(TAG, out);
+                };
+                auto mapsDiffer = [](const std::unordered_map<int, bool>& m1, const std::unordered_map<int, bool>& m2) {
+                    for (const auto& pair : m1) {
+                        if (pair.second && (!m2.count(pair.first) || !m2.at(pair.first))) return true;
+                    }
+                    for (const auto& pair : m2) {
+                        if (pair.second && (!m1.count(pair.first) || !m1.at(pair.first))) return true;
+                    }
+                    return false;
+                };
+
+                if (mapsDiffer(state.overallKeyStates, newOverallKeyStates)) {
+                    printKeyState(state.overallKeyStates, "old overallKeyStates");
+                    printKeyState(newOverallKeyStates, "new overallKeyStates");
+                }
+
                 ProcessMouseMovement(mouseMovementValues, port);
                 ProcessOverallKeyChanges(state.overallKeyStates, newOverallKeyStates, port);
             }
         }
     }
+
+    LOGI(TAG, "Accumulator Thread exited");
 }
 
 void Controller::ProcessOverallKeyChanges(std::unordered_map<int, bool>& oldStates, const std::unordered_map<int, bool>& newStates, int port) {
@@ -458,8 +498,10 @@ void Controller::ProcessMouseMovement(const std::unordered_map<int, double>& mou
     } else {
         if (isTouchScreenMode(moveX, moveY)) {
             // Absolute normalized mode (Touchscreen)
-            int32_t absX = static_cast<int32_t>(moveX * 65535);
-            int32_t absY = static_cast<int32_t>(moveY * 65535);
+            int screenWidth, screenHeight;
+            m_platform->GetScreenDimensions(screenWidth, screenHeight);
+            int32_t absX = static_cast<int32_t>(moveX * screenWidth);
+            int32_t absY = static_cast<int32_t>(moveY * screenHeight);
             m_inputInjector->SendMouseMoveAbsolute(absX, absY, port);
         } else if (m_context.mouseMode == MouseMode::ABSOLUTE_MODE) {
             // Absolute cursor mode: accumulate deltas onto port's anchor
@@ -468,7 +510,13 @@ void Controller::ProcessMouseMovement(const std::unordered_map<int, double>& mou
             m_inputInjector->SendMouseMoveAbsolute(state.mouseAnchorX, state.mouseAnchorY, port);
         } else {
             // Relative movement mode
-            m_inputInjector->SendMouseMove(static_cast<int32_t>(moveX), static_cast<int32_t>(moveY), port);
+            int32_t newX = state.mouseAnchorX + static_cast<int32_t>(moveX);
+            int32_t newY = state.mouseAnchorY + static_cast<int32_t>(moveY);
+            int32_t deltaX = static_cast<int32_t>(newX - state.prevMouseX);
+            int32_t deltaY = static_cast<int32_t>(newY - state.prevMouseY);
+            m_inputInjector->SendMouseMove(static_cast<int32_t>(deltaX), static_cast<int32_t>(deltaY), port);
+            state.prevMouseX = newX;
+            state.prevMouseY = newY;
         }
     }
 

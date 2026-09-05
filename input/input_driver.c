@@ -37,6 +37,7 @@
 #endif
 
 #include "input_driver.h"
+#include <rthreads/rthreads.h>
 #include "input_keymaps.h"
 #include "input_remapping.h"
 #include "input_osk.h"
@@ -80,6 +81,8 @@
 #else
 #define MOBOALIEN_LOG(...) RARCH_LOG(__VA_ARGS__)
 #endif
+
+#define MOBOALIEN_LOG(...) do {} while (0) 
 
 #include "../ai/game_ai.h"
 
@@ -803,6 +806,7 @@ bool input_driver_button_combo(
    return false;
 }
 
+static slock_t *moboalien_injected_mouse_lock_get(void);
 static int32_t input_state_wrap(
       input_driver_t *input,
       void *data,
@@ -939,6 +943,10 @@ static int32_t input_state_wrap(
         && _port < MAX_USERS)
    {
       input_driver_state_t *input_st = &input_driver_st;
+      slock_t *lock = moboalien_injected_mouse_lock_get();
+      if (lock)
+         slock_lock(lock);
+
       switch (id)
       {
          case RETRO_DEVICE_ID_MOUSE_X:
@@ -967,6 +975,98 @@ static int32_t input_state_wrap(
             input_st->injected_mouse_wd[_port] = 0;
             break;
       }
+
+      if (lock)
+         slock_unlock(lock);
+   }
+
+   if (device == RETRO_DEVICE_LIGHTGUN && _port < MAX_USERS)
+   {
+      input_driver_state_t *input_st = &input_driver_st;
+      slock_t *lock = moboalien_injected_mouse_lock_get();
+      int light_gun_multiplier = 100;
+      if (lock)
+         slock_lock(lock);
+       switch (id)
+      {
+         case RETRO_DEVICE_ID_LIGHTGUN_X:
+         {
+            int value = input_st->injected_mouse_x_delta[_port];
+            ret += light_gun_multiplier * value;
+            input_st->injected_mouse_x_delta[_port] = 0;
+            break;
+         }
+
+         case RETRO_DEVICE_ID_LIGHTGUN_Y:
+         {
+            int value = input_st->injected_mouse_y_delta[_port];
+            ret += light_gun_multiplier * value;
+            input_st->injected_mouse_y_delta[_port] = 0;
+            break;
+         }
+
+         case RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X:
+            ret = light_gun_multiplier * input_st->injected_lightgun_x[_port];
+            break;
+
+         case RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y:
+            ret = light_gun_multiplier * input_st->injected_lightgun_y[_port];
+            break;
+
+         case RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN:
+            // Explicitly force it to stay on-screen (0) while shooting, 
+            ret = 0; 
+            break;
+
+         case RETRO_DEVICE_ID_LIGHTGUN_TRIGGER:
+            ret = input_st->injected_lightgun_buttons[_port]>>1 & 1;
+            break;
+         
+         case RETRO_DEVICE_ID_LIGHTGUN_RELOAD:
+            ret = input_st->injected_lightgun_buttons[_port]>>2 & 1;
+            break;
+         
+         case RETRO_DEVICE_ID_LIGHTGUN_AUX_A:
+            ret = input_st->injected_lightgun_buttons[_port]>>3 & 1;
+            break;
+         
+         case RETRO_DEVICE_ID_LIGHTGUN_AUX_B:
+            ret = input_st->injected_lightgun_buttons[_port]>>4 & 1;
+            break;
+
+         case RETRO_DEVICE_ID_LIGHTGUN_START:
+            ret = input_st->injected_lightgun_buttons[_port]>>5 & 1;
+            break;
+
+         case RETRO_DEVICE_ID_LIGHTGUN_SELECT:
+            ret = input_st->injected_lightgun_buttons[_port]>>6 & 1;
+            break;
+
+         case RETRO_DEVICE_ID_LIGHTGUN_AUX_C:
+            ret = input_st->injected_lightgun_buttons[_port]>>7 & 1;
+            break;
+
+         case RETRO_DEVICE_ID_LIGHTGUN_DPAD_UP:
+            ret = input_st->injected_lightgun_buttons[_port]>>8 & 1;
+            break;
+
+         case RETRO_DEVICE_ID_LIGHTGUN_DPAD_DOWN:
+            ret = input_st->injected_lightgun_buttons[_port]>>9 & 1;
+            break;
+         
+         case RETRO_DEVICE_ID_LIGHTGUN_DPAD_LEFT:
+            ret = input_st->injected_lightgun_buttons[_port]>>10 & 1;
+            break;
+         
+         case RETRO_DEVICE_ID_LIGHTGUN_DPAD_RIGHT:
+            ret = input_st->injected_lightgun_buttons[_port]>>11 & 1;
+            break;
+
+         default:
+            break;
+      }
+      if (lock)
+         slock_unlock(lock);
    }
 
    /* Populate the per-port joypad cache from the MASK result so that
@@ -2341,12 +2441,12 @@ static int16_t input_state_internal(
    if (input_blocked && device == RETRO_DEVICE_JOYPAD)
    {
       unsigned _dbg_p;
-      for (_dbg_p = 0; _dbg_p < MAX_USERS; _dbg_p++)
-         if (input_st->injected_buttons[_dbg_p])
-            MOBOALIEN_LOG("[BLOCKED] injected[%u]=0x%08x flushing=%d flags=0x%x",
-                  _dbg_p, input_st->injected_buttons[_dbg_p],
-                  menu_st->input_driver_flushing_input,
-                  input_st->flags);
+      // for (_dbg_p = 0; _dbg_p < MAX_USERS; _dbg_p++)
+      //    if (input_st->injected_buttons[_dbg_p])
+      //       MOBOALIEN_LOG("[BLOCKED] injected[%u]=0x%08x flushing=%d flags=0x%x",
+      //             _dbg_p, input_st->injected_buttons[_dbg_p],
+      //             menu_st->input_driver_flushing_input,
+      //             input_st->flags);
    }
 #else
    bool input_blocked                      = (input_st->flags & INP_FLAG_BLOCK_LIBRETRO_INPUT) ? true : false;
@@ -6548,7 +6648,6 @@ void input_overlay_init(void)
 // ---------------------------------------------------------------------------
 void moboalien_inject_key(int port, int keycode, int down)
 {
-   MOBOALIEN_LOG("[INJECT] port=%d keycode=%d down=%d", port, keycode, down);
    input_driver_state_t *input_st = &input_driver_st;
 
    if (port < 0 || port >= DEFAULT_MAX_PADS)
@@ -6572,13 +6671,51 @@ void moboalien_inject_key(int port, int keycode, int down)
       input_st->injected_buttons[port] |=  (1 << keycode);
    else
       input_st->injected_buttons[port] &= ~(1 << keycode);
-   MOBOALIEN_LOG("inject_key: port=%d keycode=%d down=%d injected_buttons=0x%08x",
+   MOBOALIEN_LOG("inject_key: port=%d keycode=%d down=%d injected_buttons=0x%08x\n",
          port, keycode, down, input_st->injected_buttons[port]);
 }
 
-void moboalien_inject_hotkey(int retrok, int down)
+void moboalien_inject_light_gun_buttons(int port, int keycode, int down)
+{
+   input_driver_state_t *input_st = &input_driver_st;
+
+   if (port < 0 || port >= DEFAULT_MAX_PADS)
+   {
+      MOBOALIEN_LOG("inject_light_gun_buttons: port %d out of range [0,%d)", port, DEFAULT_MAX_PADS);
+      return;
+   }
+   if (keycode < 0 || keycode >= 16)
+   {
+      MOBOALIEN_LOG("inject_light_gun_buttons: keycode %d out of range [0,16)", keycode);
+      return;
+   }
+
+   if (!(input_st->injected_registered_ports & (1u << port)))
+   {
+      input_pad_connect(port, (input_device_driver_t*)input_st->primary_joypad);
+      input_st->injected_registered_ports |= (1u << port);
+   }
+
+   if (down)
+      input_st->injected_lightgun_buttons[port] |=  (1 << keycode);
+   else
+      input_st->injected_lightgun_buttons[port] &= ~(1 << keycode);
+   // MOBOALIEN_LOG("inject_light_gun_buttons: port=%d keycode=%d down=%d injected_buttons=0x%08x",
+   //       port, keycode, down, input_st->injected_buttons[port]);
+}
+
+void moboalien_inject_keyboard_event(int retrok, int down)
 {
    input_keyboard_event(down, retrok, retrok, 0, RETRO_DEVICE_KEYBOARD);
+}
+
+static slock_t *moboalien_injected_mouse_lock = NULL;
+
+static slock_t *moboalien_injected_mouse_lock_get(void)
+{
+   if (!moboalien_injected_mouse_lock)
+      moboalien_injected_mouse_lock = slock_new();
+   return moboalien_injected_mouse_lock;
 }
 
 void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute)
@@ -6587,20 +6724,29 @@ void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute)
 
    if (port < 0 || port >= DEFAULT_MAX_PADS)
       return;
-
+   // MOBOALIEN_LOG("inject_mouse_move:(x=%d, y=%d, is_absolute=%d)", x, y, is_absolute);
    if (is_absolute)
    {
       /* Store absolute position as delta from zero so the driver
        * can treat it uniformly; the driver is responsible for
-       * interpreting is_absolute if it needs to. For now we
-       * accumulate into the delta fields and let the driver read. */
+       * interpreting is_absolute if it needs to. */
       input_st->injected_mouse_x_delta[port] = x;
       input_st->injected_mouse_y_delta[port] = y;
    }
    else
    {
+      slock_t *lock = moboalien_injected_mouse_lock_get();
+      if (lock)
+         slock_lock(lock);
+
       input_st->injected_mouse_x_delta[port] += x;
       input_st->injected_mouse_y_delta[port] += y;
+
+      input_st->injected_lightgun_x[port] += x;
+      input_st->injected_lightgun_y[port] += y;
+
+      if (lock)
+         slock_unlock(lock);
    }
 }
 
@@ -6625,16 +6771,47 @@ void moboalien_inject_mouse_wheel(int port, int delta)
       return;
 
    if (delta > 0)
-      input_st->injected_mouse_wu[port] = 1;
+      retro_atomic_store_release_int(&input_st->injected_mouse_wu[port], 1);
    else if (delta < 0)
-      input_st->injected_mouse_wd[port] = 1;
+      retro_atomic_store_release_int(&input_st->injected_mouse_wd[port], 1);
 }
 
 void moboalien_command_event(int cmd)
 {
    input_driver_state_t *input_st = &input_driver_st;
    MOBOALIEN_LOG("[CMD] moboalien_command_event: queuing cmd=%d", cmd);
-   input_st->injected_cmd_pending = cmd;
+   switch(cmd)
+   {
+      case 1:
+         input_st->injected_cmd_pending = CMD_EVENT_MENU_TOGGLE;
+         break;
+      case 2:
+         input_st->injected_cmd_pending = CMD_EVENT_RESET;
+         break;
+      case 3:
+         input_st->injected_cmd_pending = CMD_EVENT_SAVE_STATE;
+         break;
+      case 4:
+         input_st->injected_cmd_pending = CMD_EVENT_LOAD_STATE;
+         break;
+      case 5:
+         input_st->injected_cmd_pending = CMD_EVENT_QUIT;
+         break;
+      case 6:
+         input_st->injected_cmd_pending = CMD_EVENT_TAKE_SCREENSHOT;
+         break;
+      case 7:
+         input_st->injected_cmd_pending = CMD_EVENT_STATISTICS_TOGGLE;
+         break;
+      case 8:
+         input_st->injected_cmd_pending = CMD_EVENT_PAUSE_TOGGLE;
+         break;
+      case 9:
+         input_st->injected_cmd_pending = CMD_EVENT_AUDIO_MUTE_TOGGLE;
+         break;
+      default:
+         break;
+   }
 }
 
 void input_pad_connect(unsigned port, input_device_driver_t *driver)

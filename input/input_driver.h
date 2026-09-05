@@ -24,6 +24,7 @@
 
 #include <boolean.h>
 #include <retro_common_api.h>
+#include <retro_atomic.h>
 #include <retro_inline.h>
 #include <libretro.h>
 #include <retro_miscellaneous.h>
@@ -652,11 +653,16 @@ typedef struct
     * injected_registered_ports: bitmask of ports that have already had
     *   input_pad_connect() called, to avoid repeated registration. */
    int32_t  injected_buttons[MAX_USERS];
-   int      injected_mouse_x_delta[MAX_USERS];
-   int      injected_mouse_y_delta[MAX_USERS];
-   int      injected_mouse_buttons[MAX_USERS];
-   int      injected_mouse_wu[MAX_USERS];
-   int      injected_mouse_wd[MAX_USERS];
+   int32_t injected_mouse_x_delta[MAX_USERS];
+   int32_t injected_mouse_y_delta[MAX_USERS];
+
+   int16_t injected_lightgun_x[MAX_USERS];
+   int16_t injected_lightgun_y[MAX_USERS];
+   int32_t injected_lightgun_buttons[MAX_USERS];
+
+   int32_t injected_mouse_buttons[MAX_USERS];
+   int32_t injected_mouse_wu[MAX_USERS];
+   int32_t injected_mouse_wd[MAX_USERS];
    uint32_t injected_registered_ports;
    volatile int injected_cmd_pending; /* written from network thread, consumed on main thread */
 
@@ -696,7 +702,8 @@ typedef struct
 } input_driver_state_t;
 
 void moboalien_inject_key(int port, int keycode, int down);
-void moboalien_inject_hotkey(int retrok, int down);
+void moboalien_inject_light_gun_buttons(int port, int keycode, int down);
+void moboalien_inject_keyboard_event(int retrok, int down);
 void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute);
 void moboalien_inject_mouse_button(int port, int button, int down);
 void moboalien_inject_mouse_wheel(int port, int delta);

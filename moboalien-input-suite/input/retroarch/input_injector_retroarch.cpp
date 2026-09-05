@@ -7,7 +7,8 @@
 static const char* TAG = "InputInjectorRetroArch";
 
 extern "C" void moboalien_inject_key(int port, int keycode, int down);
-extern "C" void moboalien_inject_hotkey(int retrok, int down);
+extern "C" void moboalien_inject_keyboard_event(int retrok, int down);
+extern "C" void moboalien_inject_light_gun_buttons(int port, int keycode, int down);
 extern "C" void moboalien_command_event(int cmd);
 extern "C" void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute);
 extern "C" void moboalien_inject_mouse_button(int port, int button, int down);
@@ -37,21 +38,64 @@ static int vk_to_joypad(int vk)
         default:  return -1;
     }
 }
-/* --- end MoboAlien VK → joypad mapping --- */
 
-static bool is_retrok_hotkey(int key)
+static int vk_to_command(int virtualKey)
 {
-    return key >= 256 || key == 13 || key == 27 || key == 32 || key == 9;
+    switch (virtualKey)
+    {
+        case 282: return 1;  /* CMD_EVENT_MENU_TOGGLE */
+        case 283: return 2;  /* CMD_EVENT_RESET */
+        case 284: return 3;  /* CMD_EVENT_SAVE_STATE */
+        case 285: return 4;  /* CMD_EVENT_LOAD_STATE */
+        case 286: return 5;  /* CMD_EVENT_QUIT */
+        case 287: return 6;  /* CMD_EVENT_TAKE_SCREENSHOT */
+        case 288: return 7;  /* CMD_EVENT_STATISTICS_TOGGLE */
+        case 289: return 8;  /* CMD_EVENT_PAUSE_TOGGLE */
+        case 290: return 9;  /* CMD_EVENT_AUDIO_MUTE_TOGGLE */
+    }
+    return -1;
+}
+
+static int vk_to_lightgun(int virtualKey)
+{
+    switch (virtualKey)
+    {
+        case 301: return 1;  /* LIGHTGUN_TRIGGER */
+        case 302: return 2;  /* LIGHTGUN_RELOAD */
+        case 303: return 3;  /* LIGHTGUN_AUX_A */
+        case 304: return 4;  /* LIGHTGUN_AUX_B */
+        case 305: return 5;  /* LIGHTGUN_START */
+        case 306: return 6;  /* LIGHTGUN_SELECT */
+        case 307: return 7;  /* LIGHTGUN_AUX_C */
+        case 308: return 8;  /* LIGHTGUN_DPAD_UP */
+        case 309: return 9;  /* LIGHTGUN_DPAD_DOWN */
+        case 310: return 10;  /* LIGHTGUN_DPAD_LEFT */
+        case 311: return 11;  /* LIGHTGUN_DPAD_RIGHT */
+        default: return -1;
+    }
+    return -1;
+}
+
+static bool is_command_key(int key)
+{
+    return key>=282 && key<=292;
+}
+
+static bool is_lightgun_button(int key)
+{
+    return key>=301 && key<=320;
 }
 
 class InputInjectorRetroArch final : public IInputInjector {
 public:
     void SendKeyDown(int virtualKey, int port) override {
         LOGD(TAG, "SendKeyDown: " + std::to_string(virtualKey) + " port: " + std::to_string(port));
-        if (virtualKey == 8)
-            moboalien_command_event(71); /* CMD_EVENT_MENU_TOGGLE */
-        else if (is_retrok_hotkey(virtualKey))
-            moboalien_inject_hotkey(virtualKey, 1);
+        if (is_command_key(virtualKey))
+            moboalien_command_event(vk_to_command(virtualKey));
+        else if (is_lightgun_button(virtualKey))
+        {
+            moboalien_inject_light_gun_buttons(port, vk_to_lightgun(virtualKey), 1);
+        }
         else
         {
             int joypad_id = vk_to_joypad(virtualKey);
@@ -62,10 +106,12 @@ public:
 
     void SendKeyUp(int virtualKey, int port) override {
         LOGD(TAG, "SendKeyUp: " + std::to_string(virtualKey) + " port: " + std::to_string(port));
-        if (virtualKey == 8)
+        if (is_command_key(virtualKey))
             return; /* toggle fires on down only */
-        else if (is_retrok_hotkey(virtualKey))
-            moboalien_inject_hotkey(virtualKey, 0);
+        else if (is_lightgun_button(virtualKey))
+        {
+            moboalien_inject_light_gun_buttons(port, vk_to_lightgun(virtualKey), 0);
+        }
         else
         {
             int joypad_id = vk_to_joypad(virtualKey);

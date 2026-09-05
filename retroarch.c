@@ -6080,7 +6080,6 @@ void main_exit(void *args)
    runloop_msg_queue_deinit();
    driver_uninit(DRIVERS_CMD_ALL, (enum driver_lifetime_flags)0);
 
-   moboalien_server_stop();
    retro_main_log_file_deinit();
 
    retroarch_ctl(RARCH_CTL_STATE_FREE,  NULL);
