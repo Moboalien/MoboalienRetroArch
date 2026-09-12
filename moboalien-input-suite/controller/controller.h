@@ -31,6 +31,7 @@ private:
 
     void ProcessOverallKeyChanges(std::unordered_map<int, bool>& oldStates, const std::unordered_map<int, bool>& newStates, int port);
     void ProcessMouseMovement(const std::unordered_map<int, double>& mouseMovementValues, int port);
+    void ProcessJoystickMovement(const std::unordered_map<int, double>& joystickValues, int port);
     bool isTouchScreenMode(double x, double y) const {
         return m_context.mouseMode == MouseMode::TOUCHSCREEN_MODE || (x > 0.0f && x < 1.0f && y > 0.0f && y < 1.0f);
     };

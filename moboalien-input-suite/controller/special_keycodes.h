@@ -10,6 +10,13 @@
 #define VK_MOUSE_MOVE_X         0x1010
 #define VK_MOUSE_MOVE_Y         0x1011
 #define VK_MOUSE_WHEEL          0x1020
+
+// Special virtual key codes for analog joystick axes
+#define VK_JOYSTICK_LX          0x1030
+#define VK_JOYSTICK_LY          0x1031
+#define VK_JOYSTICK_RX          0x1032
+#define VK_JOYSTICK_RY          0x1033
+
 #define VK_LSHIFT               0xA0
 #define VK_RSHIFT               0xA1
 #define VK_LCONTROL             0xA2
@@ -36,6 +43,16 @@ inline bool IsMouseWheelCode(int vk) {
 // Check if a virtual key code is any mouse code that is not a on/off button
 inline bool IsSpecialMouseCode(int vk) {
     return  IsMouseMovementCode(vk) || IsMouseWheelCode(vk);
+}
+
+// Check if a virtual key code is an analog joystick axis code
+inline bool IsJoystickAxisCode(int vk) {
+    return vk >= VK_JOYSTICK_LX && vk <= VK_JOYSTICK_RY;
+}
+
+// Check if a virtual key code is any continuous analog/relative value (not an on/off key)
+inline bool IsSpecialContinuousCode(int vk) {
+    return IsSpecialMouseCode(vk) || IsJoystickAxisCode(vk);
 }
 
 inline bool IsModifierKey(int vk) {

@@ -660,6 +660,9 @@ typedef struct
    int16_t injected_lightgun_y[MAX_USERS];
    int32_t injected_lightgun_buttons[MAX_USERS];
 
+   /* Injected analog joystick state: [port][stick: 0=Left, 1=Right][axis: 0=X, 1=Y] */
+   int16_t injected_analog[MAX_USERS][2][2];
+
    int32_t injected_mouse_buttons[MAX_USERS];
    int32_t injected_mouse_wu[MAX_USERS];
    int32_t injected_mouse_wd[MAX_USERS];
@@ -707,6 +710,8 @@ void moboalien_inject_keyboard_event(int retrok, int down);
 void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute);
 void moboalien_inject_mouse_button(int port, int button, int down);
 void moboalien_inject_mouse_wheel(int port, int delta);
+void moboalien_inject_analog(int port, int stick, int axis, int16_t value);
+void moboalien_inject_analog_stick(int port, int stick, int16_t x, int16_t y);
 void moboalien_command_event(int cmd);
 
 void input_driver_init_joypads(void);

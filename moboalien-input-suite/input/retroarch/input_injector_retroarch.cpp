@@ -13,6 +13,8 @@ extern "C" void moboalien_command_event(int cmd);
 extern "C" void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute);
 extern "C" void moboalien_inject_mouse_button(int port, int button, int down);
 extern "C" void moboalien_inject_mouse_wheel(int port, int delta);
+extern "C" void moboalien_inject_analog(int port, int stick, int axis, int16_t value);
+extern "C" void moboalien_inject_analog_stick(int port, int stick, int16_t x, int16_t y);
 
 /* --- MoboAlien VK → joypad mapping (remove when no longer needed) --- */
 static int vk_to_joypad(int vk)
@@ -142,6 +144,20 @@ public:
 
     void SendTextInput(const char* text, uint16_t length, int port, bool async) override {
         // Not implemented for RetroArch yet
+    }
+
+    void SendAnalogStick(int stick, float x, float y, int port) override {
+        float cx = (x < -1.0f) ? -1.0f : ((x > 1.0f) ? 1.0f : x);
+        float cy = (y < -1.0f) ? -1.0f : ((y > 1.0f) ? 1.0f : y);
+        int16_t ix = static_cast<int16_t>(cx * 32767.0f);
+        int16_t iy = static_cast<int16_t>(cy * 32767.0f);
+        moboalien_inject_analog_stick(port, stick, ix, iy);
+    }
+
+    void SendAnalogAxis(int stick, int axis, float value, int port) override {
+        float c = (value < -1.0f) ? -1.0f : ((value > 1.0f) ? 1.0f : value);
+        int16_t iv = static_cast<int16_t>(c * 32767.0f);
+        moboalien_inject_analog(port, stick, axis, iv);
     }
 
     bool IsAvailable()                                  override { return true; }

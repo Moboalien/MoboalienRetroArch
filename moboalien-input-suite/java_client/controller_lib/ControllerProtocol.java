@@ -52,6 +52,12 @@ public class ControllerProtocol {
     public static final int VK_MOUSE_MOVE_Y = 0x1011;
     public static final int VK_MOUSE_WHEEL = 0x1020;
 
+    // Special virtual key codes for analog joystick axes
+    public static final int VK_JOYSTICK_LX = 0x1030;
+    public static final int VK_JOYSTICK_LY = 0x1031;
+    public static final int VK_JOYSTICK_RX = 0x1032;
+    public static final int VK_JOYSTICK_RY = 0x1033;
+
     /**
      * Creates a configuration packet to define the virtual key codes for the buttons.
      *

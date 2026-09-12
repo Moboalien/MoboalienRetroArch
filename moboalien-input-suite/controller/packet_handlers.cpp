@@ -73,9 +73,9 @@ void handleStatePacket(ServerContext& ctx, Platform* platform, const std::string
     // Update duty cycle values (processing happens in accumulator thread)
     for (size_t i = 0; i < sensorValues.size(); ++i) {
         // For regular buttons, clamp duty cycle between 0.0 and 1.0.
-        // For special mouse movement codes, pass the value through directly.
+        // For special mouse movement and joystick axis codes, pass the value through directly.
         int vk = config.buttonCodes[i];
-        if (IsSpecialMouseCode(vk)) {
+        if (IsSpecialContinuousCode(vk)) {
             config.currentDuty[i] = (double)sensorValues[i];
         } else {
             if (sensorValues[i] > 1) sensorValues[i] = 1.0f;

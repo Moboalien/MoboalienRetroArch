@@ -101,7 +101,7 @@ void Controller::Stop()
                     int vk = pair.first;
                     if (IsMouseButtonCode(vk)) {
                         m_inputInjector->SendMouseButtonUp(vk - VK_MOUSE_LEFT_BUTTON);
-                    } else if (!IsSpecialMouseCode(vk)) {
+                    } else if (!IsSpecialContinuousCode(vk)) {
                         m_inputInjector->SendKeyUp(vk, port);
                     }
                 }
@@ -340,6 +340,7 @@ void Controller::accumulatorThreadFunction() {
             
             std::unordered_map<int, bool> newOverallKeyStates;
             std::unordered_map<int, double> mouseMovementValues;
+            std::unordered_map<int, double> joystickValues;
 
             for (auto const& pair : duties) {
                 int vk = pair.first;
@@ -347,6 +348,11 @@ void Controller::accumulatorThreadFunction() {
 
                 if (IsSpecialMouseCode(vk)) {
                     mouseMovementValues[vk] = duty;
+                    continue;
+                }
+
+                if (IsJoystickAxisCode(vk)) {
+                    joystickValues[vk] = duty;
                     continue;
                 }
 
@@ -426,6 +432,7 @@ void Controller::accumulatorThreadFunction() {
                 }
 
                 ProcessMouseMovement(mouseMovementValues, port);
+                ProcessJoystickMovement(joystickValues, port);
                 ProcessOverallKeyChanges(state.overallKeyStates, newOverallKeyStates, port);
             }
         }
@@ -442,7 +449,7 @@ void Controller::ProcessOverallKeyChanges(std::unordered_map<int, bool>& oldStat
         if (pair.second && (!newStates.count(vk) || !newStates.at(vk)) && !IsModifierKey(vk)) {
             if (IsMouseButtonCode(vk)) {
                 m_inputInjector->SendMouseButtonUp(vk - VK_MOUSE_LEFT_BUTTON, port);
-            } else if (!IsSpecialMouseCode(vk)) {
+            } else if (!IsSpecialContinuousCode(vk)) {
                 m_inputInjector->SendKeyUp(vk, port);
             }
             if (m_context.verbose) LOGD(TAG, "SendInput[" + std::to_string(port) + "]: VK_" + std::to_string(vk) + " UP");
@@ -451,7 +458,7 @@ void Controller::ProcessOverallKeyChanges(std::unordered_map<int, bool>& oldStat
     for (const auto& pair : oldStates) {
         int vk = pair.first;
         if (pair.second && (!newStates.count(vk) || !newStates.at(vk)) && IsModifierKey(vk)) {
-            if (!IsSpecialMouseCode(vk)) { // Mouse buttons are not modifiers
+            if (!IsSpecialContinuousCode(vk)) { // Mouse buttons are not modifiers
                 m_inputInjector->SendKeyUp(vk, port);
             }
             if (m_context.verbose) LOGD(TAG, "SendInput[" + std::to_string(port) + "]: VK_" + std::to_string(vk) + " UP (Modifier)");
@@ -463,7 +470,7 @@ void Controller::ProcessOverallKeyChanges(std::unordered_map<int, bool>& oldStat
     for (const auto& pair : newStates) {
         int vk = pair.first;
         if (pair.second && (!oldStates.count(vk) || !oldStates[vk]) && IsModifierKey(vk)) {
-            if (!IsSpecialMouseCode(vk)) {
+            if (!IsSpecialContinuousCode(vk)) {
                 m_inputInjector->SendKeyDown(vk, port);
             }
             if (m_context.verbose) LOGD(TAG, "SendInput[" + std::to_string(port) + "]: VK_" + std::to_string(vk) + " DOWN (Modifier)");
@@ -474,7 +481,7 @@ void Controller::ProcessOverallKeyChanges(std::unordered_map<int, bool>& oldStat
         if (pair.second && (!oldStates.count(vk) || !oldStates[vk]) && !IsModifierKey(vk)) {
             if (IsMouseButtonCode(vk)) {
                 m_inputInjector->SendMouseButtonDown(vk - VK_MOUSE_LEFT_BUTTON, port);
-            } else if (!IsSpecialMouseCode(vk)) {
+            } else if (!IsSpecialContinuousCode(vk)) {
                 m_inputInjector->SendKeyDown(vk, port);
             }
             if (m_context.verbose) LOGD(TAG, "SendInput[" + std::to_string(port) + "]: VK_" + std::to_string(vk) + " DOWN");
@@ -522,6 +529,31 @@ void Controller::ProcessMouseMovement(const std::unordered_map<int, double>& mou
 
     if (wheel != 0) {
         m_inputInjector->SendMouseWheel(static_cast<int>(wheel), port);
+    }
+}
+
+void Controller::ProcessJoystickMovement(const std::unordered_map<int, double>& joystickValues, int port) {
+    if (joystickValues.empty() || !m_inputInjector->IsAvailable()) return;
+
+    for (const auto& pair : joystickValues) {
+        int vk = pair.first;
+        float val = static_cast<float>(pair.second);
+        switch (vk) {
+            case VK_JOYSTICK_LX:
+                m_inputInjector->SendAnalogAxis(0, 0, val, port);
+                break;
+            case VK_JOYSTICK_LY:
+                m_inputInjector->SendAnalogAxis(0, 1, val, port);
+                break;
+            case VK_JOYSTICK_RX:
+                m_inputInjector->SendAnalogAxis(1, 0, val, port);
+                break;
+            case VK_JOYSTICK_RY:
+                m_inputInjector->SendAnalogAxis(1, 1, val, port);
+                break;
+            default:
+                break;
+        }
     }
 }
 

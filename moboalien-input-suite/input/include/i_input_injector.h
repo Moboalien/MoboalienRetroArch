@@ -34,6 +34,10 @@ public:
     // Text input functions
     virtual void SendTextInput(const char* text, uint16_t length, int port = 0, bool async = true) = 0;
 
+    // Analog input functions (stick: 0=Left, 1=Right; axis: 0=X, 1=Y; values normalized: -1.0f to 1.0f)
+    virtual void SendAnalogStick(int stick, float x, float y, int port = 0) {}
+    virtual void SendAnalogAxis(int stick, int axis, float value, int port = 0) {}
+
     // Configuration
     virtual bool IsAvailable() = 0;
     virtual void SetMethod(InputMethod method) = 0;

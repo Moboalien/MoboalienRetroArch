@@ -807,6 +807,7 @@ bool input_driver_button_combo(
 }
 
 static slock_t *moboalien_injected_mouse_lock_get(void);
+static int32_t light_gun_multiplier = 100;
 static int32_t input_state_wrap(
       input_driver_t *input,
       void *data,
@@ -984,7 +985,6 @@ static int32_t input_state_wrap(
    {
       input_driver_state_t *input_st = &input_driver_st;
       slock_t *lock = moboalien_injected_mouse_lock_get();
-      int light_gun_multiplier = 100;
       if (lock)
          slock_lock(lock);
        switch (id)
@@ -1006,11 +1006,11 @@ static int32_t input_state_wrap(
          }
 
          case RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X:
-            ret = light_gun_multiplier * input_st->injected_lightgun_x[_port];
+            ret = input_st->injected_lightgun_x[_port];
             break;
 
          case RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y:
-            ret = light_gun_multiplier * input_st->injected_lightgun_y[_port];
+            ret = input_st->injected_lightgun_y[_port];
             break;
 
          case RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN:
@@ -1067,6 +1067,20 @@ static int32_t input_state_wrap(
       }
       if (lock)
          slock_unlock(lock);
+   }
+
+   if (device == RETRO_DEVICE_ANALOG && _port < MAX_USERS)
+   {
+      if (idx < 2 && id < 2)
+      {
+         input_driver_state_t *input_st = &input_driver_st;
+         int16_t inj = input_st->injected_analog[_port][idx][id];
+         if (inj != 0)
+         {
+            if (ret == 0 || abs(inj) > abs(ret))
+               ret = inj;
+         }
+      }
    }
 
    /* Populate the per-port joypad cache from the MASK result so that
@@ -2369,6 +2383,23 @@ static int16_t input_state_device(
                   res          |= val1;
                else if (val2)
                   res          |= val2;
+            }
+
+            if (port < MAX_USERS && idx < 2 && id < 2)
+            {
+               int16_t inj = input_st->injected_analog[port][idx][id];
+               if (inj != 0)
+               {
+                  if (res == 0)
+                     res = inj;
+                  else
+                  {
+                     int16_t inj_abs = (inj >= 0) ? inj : -inj;
+                     int16_t res_abs = (res >= 0) ? res : -res;
+                     if (inj_abs > res_abs)
+                        res = inj;
+                  }
+               }
             }
          }
          break;
@@ -6742,8 +6773,21 @@ void moboalien_inject_mouse_move(int port, int x, int y, int is_absolute)
       input_st->injected_mouse_x_delta[port] += x;
       input_st->injected_mouse_y_delta[port] += y;
 
-      input_st->injected_lightgun_x[port] += x;
-      input_st->injected_lightgun_y[port] += y;
+      int32_t new_lightgun_x = input_st->injected_lightgun_x[port] + x*light_gun_multiplier;
+      int32_t new_lightgun_y = input_st->injected_lightgun_y[port] + y*light_gun_multiplier;
+      
+      if (new_lightgun_x >= INT16_MAX - 1)
+         new_lightgun_x = INT16_MAX - 1;
+      else if (new_lightgun_x <= INT16_MIN + 1)
+         new_lightgun_x = INT16_MIN + 1;
+      
+      if (new_lightgun_y >= INT16_MAX - 1)
+         new_lightgun_y = INT16_MAX - 1;
+      else if (new_lightgun_y <= INT16_MIN + 1)
+         new_lightgun_y = INT16_MIN + 1;
+      
+      input_st->injected_lightgun_x[port] = new_lightgun_x;
+      input_st->injected_lightgun_y[port] = new_lightgun_y;
 
       if (lock)
          slock_unlock(lock);
@@ -6774,6 +6818,28 @@ void moboalien_inject_mouse_wheel(int port, int delta)
       retro_atomic_store_release_int(&input_st->injected_mouse_wu[port], 1);
    else if (delta < 0)
       retro_atomic_store_release_int(&input_st->injected_mouse_wd[port], 1);
+}
+
+void moboalien_inject_analog(int port, int stick, int axis, int16_t value)
+{
+   input_driver_state_t *input_st = &input_driver_st;
+
+   if (port < 0 || port >= DEFAULT_MAX_PADS || stick < 0 || stick >= 2 || axis < 0 || axis >= 2)
+      return;
+
+   if (!(input_st->injected_registered_ports & (1u << port)))
+   {
+      input_pad_connect(port, (input_device_driver_t*)input_st->primary_joypad);
+      input_st->injected_registered_ports |= (1u << port);
+   }
+
+   input_st->injected_analog[port][stick][axis] = value;
+}
+
+void moboalien_inject_analog_stick(int port, int stick, int16_t x, int16_t y)
+{
+   moboalien_inject_analog(port, stick, 0, x);
+   moboalien_inject_analog(port, stick, 1, y);
 }
 
 void moboalien_command_event(int cmd)
@@ -7907,6 +7973,14 @@ int16_t input_driver_state_wrapper(unsigned port, unsigned device,
             input_st->injected_buttons[port],
             input_st->joypad_state_cache[port],
             (int)input_st->joypad_state_cache_valid[port]);
+
+   if (    device == RETRO_DEVICE_ANALOG
+        && port   <  MAX_USERS
+        && idx    <  2
+        && id     <  2
+        && input_st->injected_analog[port][idx][id])
+      MOBOALIEN_LOG("[CORE-ANALOG] port=%u stick=%u axis=%u result=%d",
+            port, idx, id, (int)result);
 
    /* Register any analog stick input requests for
     * this 'virtual' (core) port */
