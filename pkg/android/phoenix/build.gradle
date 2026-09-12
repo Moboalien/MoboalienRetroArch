@@ -49,6 +49,9 @@ android {
       buildConfigField "boolean", "PLAY_STORE_BUILD", "false"
 
       dimension "variant"
+      ndk {
+        abiFilters 'armeabi-v7a', 'arm64-v8a'
+      }
     }
     aarch64 {
       applicationIdSuffix '.aarch64'
@@ -99,7 +102,9 @@ android {
     main {
       manifest.srcFile 'AndroidManifest.xml'
       assets.srcDirs = ['assets']
-      java.srcDirs = ['src', '../phoenix-common/src', '../../../libretro-common/vfs/saf/src']
+      java.srcDirs = ['src', '../phoenix-common/src', '../../../libretro-common/vfs/saf/src',
+                      '../../../retro-handoff/java']
+      aidl.srcDirs = ['../../../retro-handoff/java']
       jniLibs.srcDir '../phoenix-common/libs'
       jni.srcDirs = []
       res.srcDirs = ['res', '../phoenix-common/res']

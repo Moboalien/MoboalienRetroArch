@@ -47,6 +47,11 @@ private:
     // Internal signal handler function
     static void handleSignal(int signal);
 
+    // Signal handler for the previous handler installed on a signal
+    // (SIGINT/SIGTERM/SIGBREAK), so it can be chained after our own
+    // shutdown handling. Nullptr when there was none.
+    static void (*s_prevSigHandlers[3])(int);
+
     // Static shutdown flag
     static std::atomic<bool> s_shutdownRequested;
 

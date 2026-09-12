@@ -38,6 +38,11 @@
 
 
 #include "../../command.h"
+
+/* Portable video hand-off: when a capture/encoder surface is attached
+ * (e.g. A2AStreaming), RetroArch must keep rendering even when its own
+ * activity loses focus or its window is destroyed. */
+#include "../../retro-handoff/c/handoff_surface.h"
 #include "../../frontend/drivers/platform_unix.h"
 #include "../drivers_keyboard/keyboard_event_android.h"
 #include "../../tasks/tasks_internal.h"
@@ -437,10 +442,19 @@ static void android_input_poll_main_cmd(void)
 
          /* The window is being hidden or closed, clean it up. */
          /* terminate display/EGL context here */
+         if (!handoff_active())
          {
             video_driver_state_t *state = video_state_get_ptr();
             if (state->current_video_context.destroy_surface != NULL)
                state->current_video_context.destroy_surface(state->context_data);
+         }
+         else
+         {
+            /* A capture surface is attached: the activity window is gone but
+             * rendering continues into the hand-off surface, so keep the EGL
+             * surface alive.  android_app->window is still cleared below so
+             * the activity's window wait unblocks normally. */
+            RARCH_LOG("[Handoff] window destroyed while streaming; keeping EGL surface\n");
          }
 
          android_app->window = NULL;
@@ -551,6 +565,12 @@ static void android_input_poll_main_cmd(void)
          break;
       case APP_CMD_LOST_FOCUS:
          {
+            /* While a capture surface is attached, the encoder still needs
+             * frames so keep the run-loop active.  Sensors are not touched
+             * either — no local display to optimise for. */
+            if (handoff_active())
+               break;
+
             runloop_state_t *runloop_st = runloop_state_get_ptr();
             bool disable_accelerometer  = (android_app->sensor_state_mask &
                   (UINT64_C(1) << RETRO_SENSOR_ACCELEROMETER_ENABLE)) &&

@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include "../video_display_server.h"
 #include "../../frontend/drivers/platform_unix.h"
+#include "../../retro-handoff/c/handoff_surface.h"
 
 /* FORWARD DECLARATIONS */
 int system_property_get(const char *cmd, const char *args, char *value);
@@ -111,6 +112,11 @@ bool android_display_has_focus(void *data)
    bool                    focused = false;
    struct android_app *android_app = (struct android_app*)g_android;
    if (!android_app)
+      return true;
+
+   /* A capture surface takes priority: the encoder must keep receiving
+    * frames while the activity is backgrounded by the streaming app. */
+   if (handoff_active())
       return true;
 
    slock_lock(android_app->mutex);

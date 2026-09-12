@@ -7,6 +7,7 @@
 // Static member definitions
 std::atomic<bool> SignalHandler::s_shutdownRequested(false);
 std::mutex SignalHandler::s_callbackMutex;
+void (*SignalHandler::s_prevSigHandlers[3])(int) = {nullptr, nullptr, nullptr};
 
 // Internal monotonically-increasing callback ID generator
 static std::atomic<uint64_t> s_nextCallbackId(1);
@@ -17,11 +18,25 @@ SignalHandler& SignalHandler::getInstance() {
 }
 
 void SignalHandler::initialize() {
-    // Register signal handlers for common termination signals
-    std::signal(SIGINT, handleSignal);   // Ctrl+C
-    std::signal(SIGTERM, handleSignal);  // Termination signal
+    // Save the previously-installed handlers (if any) so they can be
+    // chained later, then install ours. std::signal() returns the previous
+    // handler (or SIG_ERR on failure) — we must not leak it, otherwise the
+    // app's own SIGINT/SIGTERM handling (e.g. RetroArch's frontend_unix
+    // quit-on-twice handler) would silently stop working.
+    void (*prev)(int) = std::signal(SIGINT, handleSignal);   // Ctrl+C
+    s_prevSigHandlers[0] = (prev != SIG_ERR && prev != handleSignal)
+        ? prev : nullptr;
+
+    prev = std::signal(SIGTERM, handleSignal);  // Termination signal
+    s_prevSigHandlers[1] = (prev != SIG_ERR && prev != handleSignal)
+        ? prev : nullptr;
+
 #ifdef SIGBREAK
-    std::signal(SIGBREAK, handleSignal); // Windows Ctrl+Break
+    prev = std::signal(SIGBREAK, handleSignal); // Windows Ctrl+Break
+    s_prevSigHandlers[2] = (prev != SIG_ERR && prev != handleSignal)
+        ? prev : nullptr;
+#else
+    s_prevSigHandlers[2] = nullptr;
 #endif
 }
 
@@ -80,4 +95,19 @@ const std::atomic<bool>& SignalHandler::getShutdownFlag() {
 void SignalHandler::handleSignal(int signal) {
     std::cout << "\nReceived signal " << signal << ", shutting down gracefully..." << std::endl;
     requestShutdown();
+
+    // Chain to the previously-installed handler so the host application keeps
+    // its own signal semantics (e.g. RetroArch's second-signal force-exit).
+    void (*prev)(int) = nullptr;
+    switch (signal) {
+        case SIGINT:   prev = s_prevSigHandlers[0]; break;
+        case SIGTERM:  prev = s_prevSigHandlers[1]; break;
+#ifdef SIGBREAK
+        case SIGBREAK: prev = s_prevSigHandlers[2]; break;
+#endif
+        default: break;
+    }
+    if (prev && prev != SIG_DFL && prev != SIG_IGN && prev != handleSignal) {
+        prev(signal);
+    }
 }

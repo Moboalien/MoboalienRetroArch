@@ -14,6 +14,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:name="com.retroarch.playcore.RetroArchApplication"
@@ -40,6 +41,17 @@
             <meta-data android:name="android.app.func_name" android:value="ANativeActivity_onCreate" />
         </activity>
         <activity android:name="com.retroarch.browser.debug.CoreSideloadActivity" android:exported="true"/>
+        <service android:name="com.a2a.streaming.retro.RetroHandoffService"
+                 android:exported="true">
+            <intent-filter>
+                <action android:name="com.a2a.streaming.retro.IRetroStreamService" />
+            </intent-filter>
+        </service>
+        <activity android:name="com.a2a.streaming.retro.StreamingNoticeActivity"
+                  android:exported="false"
+                  android:theme="@style/Theme.StreamingNotice"
+                  android:excludeFromRecents="true"
+                  android:noHistory="true" />
         <receiver android:name="com.retroarch.browser.receiver.InstalledCoresReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="com.retroarch.QUERY_INSTALLED_CORES" />

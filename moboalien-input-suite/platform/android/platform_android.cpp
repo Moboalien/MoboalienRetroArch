@@ -80,6 +80,15 @@ public:
         }
         int reuse = 1;
         ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+        /* Blocking RecvFrom must be woken up periodically so that
+         * Run()/ThreadLoop() can observe the shutdown flag. Closing the
+         * socket from another thread does not interrupt recvfrom on Linux,
+         * so without a receive timeout the server thread only exits when a
+         * packet happens to arrive (making quits take ~10s). */
+        timeval rcvTimeout{};
+        rcvTimeout.tv_sec  = 0;
+        rcvTimeout.tv_usec = 250000; /* 250ms */
+        ::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &rcvTimeout, sizeof(rcvTimeout));
         sockaddr_in addr{};
         addr.sin_family      = AF_INET;
         addr.sin_addr.s_addr = INADDR_ANY;

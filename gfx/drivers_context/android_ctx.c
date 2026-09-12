@@ -31,12 +31,16 @@
 
 #include "../../frontend/frontend_driver.h"
 #include "../../frontend/drivers/platform_unix.h"
+#include "../../retro-handoff/c/handoff_surface.h"
 #include "../../verbosity.h"
 #include "../../configuration.h"
 
 #ifdef HAVE_OPENGLES
 #ifndef EGL_OPENGL_ES3_BIT_KHR
 #define EGL_OPENGL_ES3_BIT_KHR                  0x0040
+#endif
+#ifndef EGL_RECORDABLE_ANDROID
+#define EGL_RECORDABLE_ANDROID                  0x3142
 #endif
 #endif
 
@@ -81,16 +85,24 @@ static void *android_gfx_ctx_init(void *video_driver)
    struct retro_hw_render_callback *hwr = video_driver_get_hw_context();
    bool debug                           = hwr->debug_context;
 #endif
-   EGLint attribs[]                     = {
-      EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-      EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-      EGL_BLUE_SIZE, 8,
-      EGL_GREEN_SIZE, 8,
-      EGL_RED_SIZE, 8,
-      EGL_ALPHA_SIZE, 8,
-      EGL_DEPTH_SIZE, 16,
-      EGL_NONE
-   };
+   EGLint attribs[22];
+   EGLint *ca  = attribs;
+   bool   hoff = handoff_active();
+
+   *ca++ = EGL_RENDERABLE_TYPE; *ca++ = EGL_OPENGL_ES2_BIT;
+   *ca++ = EGL_SURFACE_TYPE;    *ca++ = EGL_WINDOW_BIT;
+   *ca++ = EGL_BLUE_SIZE; *ca++  = 8;
+   *ca++ = EGL_GREEN_SIZE; *ca++ = 8;
+   *ca++ = EGL_RED_SIZE; *ca++   = 8;
+   *ca++ = EGL_ALPHA_SIZE; *ca++ = 8;
+   *ca++ = EGL_DEPTH_SIZE; *ca++ = 16;
+   if (hoff)
+   {
+      /* Encoder input surfaces (MediaCodec) require a recordable config. */
+      *ca++ = EGL_RECORDABLE_ANDROID;
+      *ca++ = EGL_TRUE;
+   }
+   *ca++ = EGL_NONE;
 #endif
    struct android_app *android_app      = (struct android_app*)g_android;
    android_ctx_data_t        *and       = (android_ctx_data_t*)
@@ -128,17 +140,31 @@ static void *android_gfx_ctx_init(void *video_driver)
       goto error;
 #endif
 
-   slock_lock(android_app->mutex);
-   if (!android_app->window)
+   if (handoff_active())
    {
-      slock_unlock(android_app->mutex);
-      android_gfx_ctx_destroy(and);
-      return NULL;
+      ANativeWindow *hwnd = handoff_window();
+      if (!hwnd)
+      {
+         android_gfx_ctx_destroy(and);
+         return NULL;
+      }
+      ANativeWindow_setBuffersGeometry(hwnd, 0, 0, format);
+      ANativeWindow_release(hwnd);
    }
+   else
+   {
+      slock_lock(android_app->mutex);
+      if (!android_app->window)
+      {
+         slock_unlock(android_app->mutex);
+         android_gfx_ctx_destroy(and);
+         return NULL;
+      }
 
-   ANativeWindow_setBuffersGeometry(android_app->window, 0, 0, format);
+      ANativeWindow_setBuffersGeometry(android_app->window, 0, 0, format);
 
-   slock_unlock(android_app->mutex);
+      slock_unlock(android_app->mutex);
+   }
    return and;
 
 error:
@@ -166,6 +192,35 @@ static void android_gfx_ctx_check_window(void *data, bool *quit,
    *quit                    = false;
 
 #ifdef HAVE_EGL
+   {
+      /* Unified surface hand-off: whenever the video target changes
+       * (encoder surface attach/detach, or the activity window appearing
+       * again after a backgrounding), swap the EGL surface here — once per
+       * frame on the graphics thread, so EGL is never torn down while the
+       * render loop is using it.  Latches set by the binder/service thread
+       * are consumed here too. */
+      static ANativeWindow *s_target = (ANativeWindow*)-1;
+      ANativeWindow *target = handoff_active() ? handoff_window()
+            : (((struct android_app*)g_android)
+                  ? ((struct android_app*)g_android)->window : NULL);
+
+      if (s_target == (ANativeWindow*)-1)
+         s_target = target;
+
+      if (handoff_consume_resync_request() || target != s_target)
+      {
+         s_target = target;
+         if (target)
+         {
+            RARCH_LOG("[Handoff] swapping EGL surface (active=%s)\n",
+                  handoff_active() ? "yes" : "no");
+            if (!egl_create_surface(&and->egl, target))
+               RARCH_WARN("[Handoff] EGL surface swap failed\n");
+            if (handoff_active())
+               ANativeWindow_release(target);
+         }
+      }
+   }
    egl_get_video_size(&and->egl, &new_width, &new_height);
 #endif
 
@@ -206,7 +261,18 @@ static bool android_gfx_ctx_set_video_mode(void *data,
          egl_report_error();
          return false;
       }
-      if (!egl_create_surface(&and->egl, android_app->window))
+      if (handoff_active())
+      {
+         ANativeWindow *hwnd = handoff_window();
+         bool ok;
+         if (!hwnd)
+            return false;
+         ok = egl_create_surface(&and->egl, hwnd);
+         ANativeWindow_release(hwnd);
+         if (!ok)
+            return false;
+      }
+      else if (!egl_create_surface(&and->egl, android_app->window))
          return false;
    }
 #endif
@@ -288,9 +354,22 @@ static void android_gfx_ctx_set_flags(void *data, uint32_t flags) { }
 static bool android_gfx_ctx_create_surface(void *data)
 {
 #ifdef HAVE_EGL
-   struct android_app *android_app = (struct android_app*)g_android;
    android_ctx_data_t *and = (android_ctx_data_t*)data;
-   return egl_create_surface(&and->egl, android_app->window);
+   if (handoff_active())
+   {
+      ANativeWindow *hwnd = handoff_window();
+      bool ok;
+      if (!hwnd)
+         return false;
+      ok = egl_create_surface(&and->egl, hwnd);
+      ANativeWindow_release(hwnd);
+      return ok;
+   }
+   else
+   {
+      struct android_app *android_app = (struct android_app*)g_android;
+      return egl_create_surface(&and->egl, android_app->window);
+   }
 #else
    return false;
 #endif
