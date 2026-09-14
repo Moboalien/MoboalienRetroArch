@@ -8316,7 +8316,7 @@ static void vulkan_get_overlay_interface(void *data,
 #endif
 
 #ifdef HAVE_GFX_WIDGETS
-static bool vulkan_gfx_widgets_enabled(void *data) { return true; }
+static bool vulkan_gfx_widgets_enabled(void *data) { return data != NULL; }
 #endif
 
 static bool vulkan_has_windowed(void *data)

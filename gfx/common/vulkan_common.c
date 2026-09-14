@@ -1265,7 +1265,7 @@ end:
    return ret;
 }
 
-static void vulkan_destroy_swapchain(gfx_ctx_vulkan_data_t *vk)
+void vulkan_destroy_swapchain(gfx_ctx_vulkan_data_t *vk)
 {
    unsigned i;
 

@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.Surface;
 
@@ -50,6 +51,7 @@ public final class RetroHandoffService extends Service {
     private static volatile Service sInstance;
     private boolean mEmulationStarted = false;
     private boolean mSurfaceAttached = false;
+    private boolean mAudioAttached = false;
     private boolean mStreaming = false;
 
     /** Set when the user intentionally backgrounds the app during streaming
@@ -141,7 +143,9 @@ public final class RetroHandoffService extends Service {
 
                 @Override
                 public void startEmulation() {
-                    if (mSurfaceAttached && !mEmulationStarted) {
+                    // Emulation can run with either a video surface or an audio
+                    // ring attached (audio-only streaming is a supported mode).
+                    if ((mSurfaceAttached || mAudioAttached) && !mEmulationStarted) {
                         mEmulationStarted = RetroHandoffNative.startEmulation();
                     }
                 }
@@ -162,6 +166,43 @@ public final class RetroHandoffService extends Service {
                 @Override
                 public boolean isStreaming() {
                     return mSurfaceAttached && mEmulationStarted;
+                }
+
+                @Override
+                public void attachAudioSink(ParcelFileDescriptor fd, int capacityBytes) {
+                    int dup = -1;
+                    try {
+                        if (fd != null && capacityBytes > 0) {
+                            dup = fd.dup().detachFd();
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "audio sink fd dup failed", e);
+                        dup = -1;
+                    }
+                    if (dup >= 0 && RetroHandoffNative.attachAudioSink(dup, capacityBytes)) {
+                        mAudioAttached = true;
+                        mStreaming = true;
+                        Log.i(TAG, "audio sink attached: capacity=" + capacityBytes);
+                        // Start emulation even without a video surface so audio-only
+                        // streaming works standalone; no-op if already started by the
+                        // surface path (emulation never runs twice).
+                        mMainHandler.post(this::startEmulation);
+                    } else {
+                        Log.e(TAG, "audio sink attach failed");
+                    }
+                }
+
+                @Override
+                public void detachAudioSink() {
+                    mAudioAttached = false;
+                    mStreaming = mSurfaceAttached && mEmulationStarted;
+                    RetroHandoffNative.detachAudioSink();
+                    Log.i(TAG, "audio sink detached");
+                }
+
+                @Override
+                public boolean isAudioStreaming() {
+                    return mAudioAttached && mEmulationStarted;
                 }
             };
 

@@ -61,6 +61,7 @@ MOBOALIEN_DIR := $(RARCH_DIR)/moboalien-input-suite
 LOCAL_SRC_FILES  +=	$(RARCH_DIR)/griffin/griffin.c \
 							$(RARCH_DIR)/griffin/griffin_cpp.cpp \
 							$(RARCH_DIR)/retro-handoff/c/handoff_surface.c \
+							$(RARCH_DIR)/retro-handoff/c/handoff_audio.c \
 							$(RARCH_DIR)/retro-handoff/retroarch/handoff_host_android.c \
 							$(MOBOALIEN_DIR)/retroarch/moboalien_server.cpp \
 							$(MOBOALIEN_DIR)/input/retroarch/input_injector_retroarch.cpp \

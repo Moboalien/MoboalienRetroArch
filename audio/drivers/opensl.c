@@ -52,10 +52,21 @@ typedef struct sl
    unsigned buf_count;
    unsigned buffer_index;
    unsigned buffer_ptr;
+   unsigned rate;
    volatile unsigned buffered_blocks;
    bool nonblock;
    bool is_paused;
 } sl_t;
+
+/* Optional external PCM capture hook provided by the retro-handoff module.
+ * Weak reference: if the module is not linked the call is skipped, so the core
+ * audio source stays fully decoupled from it. */
+extern void handoff_audio_submit(unsigned rate, const int16_t *samples, size_t frames)
+      __attribute__((weak));
+
+/* True while an A2A audio sink ring is attached (i.e. the PCM is being
+ * streamed). Weak reference like handoff_audio_submit above. */
+extern bool handoff_audio_active(void) __attribute__((weak));
 
 static void opensl_callback(SLAndroidSimpleBufferQueueItf bq, void *ctx)
 {
@@ -115,6 +126,8 @@ static void *sl_init(const char *device, unsigned rate, unsigned latency,
    (void)device;
    if (!sl)
       goto error;
+
+   sl->rate = rate;
 
    RARCH_LOG("[OpenSL] Requested audio latency: %u ms.\n", latency);
 
@@ -237,6 +250,20 @@ static ssize_t sl_write(void *data, const void *s, size_t len)
    size_t _len = 0;
    sl_t           *sl = (sl_t*)data;
    const uint8_t *buf = (const uint8_t*)s;
+   bool mute_while_streaming = false;
+
+   /* Capture the incoming stereo-s16 PCM for the retro-handoff audio module
+    * before it is consumed by the buffer queue. len is always a whole number
+    * of stereo frames (buf_size = block_frames * 4). */
+   if (handoff_audio_submit && len >= 4)
+      handoff_audio_submit(sl->rate, (const int16_t*)buf, len / 4);
+
+   /* While the A2A audio ring is attached the PCM is being streamed, so keep
+    * the OpenSL buffer queue fed with silence instead of letting the same audio
+    * play out of RetroArch's local speakers. Timing and backpressure are
+    * unchanged, so the encoder never starves and the device never underruns. */
+   if (handoff_audio_active)
+      mute_while_streaming = handoff_audio_active();
 
    while (len)
    {
@@ -259,7 +286,10 @@ static ssize_t sl_write(void *data, const void *s, size_t len)
 
       if (avail_write)
       {
-         memcpy(sl->buffer[sl->buffer_index] + sl->buffer_ptr, buf, avail_write);
+         if (mute_while_streaming)
+            memset(sl->buffer[sl->buffer_index] + sl->buffer_ptr, 0, avail_write);
+         else
+            memcpy(sl->buffer[sl->buffer_index] + sl->buffer_ptr, buf, avail_write);
          sl->buffer_ptr += avail_write;
          buf            += avail_write;
          len            -= avail_write;

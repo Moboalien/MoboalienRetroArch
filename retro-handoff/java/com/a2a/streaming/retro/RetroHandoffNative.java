@@ -64,6 +64,25 @@ public final class RetroHandoffNative {
         return nativeIsProducerAlive();
     }
 
+    /** Maps the shared-memory audio ring passed over AIDL and starts capturing
+     *  PCM from the host audio driver into it. Returns false on failure. */
+    public static boolean attachAudioSink(int fd, int capacityBytes) {
+        lib();
+        return nativeAttachAudioSink(fd, capacityBytes);
+    }
+
+    /** Unmaps the audio ring and stops PCM capture. */
+    public static void detachAudioSink() {
+        lib();
+        nativeDetachAudioSink();
+    }
+
+    /** True while an audio ring is attached. */
+    public static boolean isAudioCaptureActive() {
+        lib();
+        return nativeIsAudioCaptureActive();
+    }
+
     private static native boolean nativeAttachSurface(Surface surface);
 
     private static native void nativeDetachSurface();
@@ -73,4 +92,10 @@ public final class RetroHandoffNative {
     private static native void nativeStopEmulation();
 
     private static native boolean nativeIsProducerAlive();
+
+    private static native boolean nativeAttachAudioSink(int fd, int capacityBytes);
+
+    private static native void nativeDetachAudioSink();
+
+    private static native boolean nativeIsAudioCaptureActive();
 }

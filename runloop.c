@@ -58,6 +58,10 @@
 #include <boolean.h>
 #include <clamping.h>
 #include <string/stdstring.h>
+
+#ifdef ANDROID
+#include "retro-handoff/c/handoff_surface.h"
+#endif
 #include <dynamic/dylib.h>
 #include <file/config_file.h>
 #include <lists/string_list.h>
@@ -7232,6 +7236,34 @@ end:
 
 
 
+#ifdef ANDROID
+/* Consume a deferred hand-off surface switch (see android_vk_ctx.c
+ * check_window).  The switch must go through a full driver reinit
+ * (which also re-runs the core's context_reset) rather than an in-place
+ * VkSurface rebuild; it is issued here so it runs on the graphics thread,
+ * outside any driver callback.  The ITERATE case additionally runs it with
+ * RUNLOOP_FLAG_CORE_RUNNING set (see below); the menu/pause cases consume it
+ * before either returns so a stream can start while only the menu is live.
+ *
+ * Uses DRIVERS_CMD_ALL rather than DRIVER_VIDEO_MASK alone: a video-only
+ * reinit frees the old vk_t (device + surface) and allocates a new one,
+ * but leaves the menu alive with font->vk pointing at the freed old
+ * vk_t.  When the user later loads content, driver_uninit frees the menu
+ * fonts via vulkan_font_free, which dereferences the stale pointer and
+ * SIGSEGV in vkDestroyBuffer.  A full reinit tears down the menu too,
+ * so its fonts are recreated against the live vk_t. */
+static void runloop_handoff_reset(void)
+{
+   if (handoff_pending_reset())
+   {
+      int reset_flags = DRIVERS_CMD_ALL;
+      RARCH_LOG("[Handoff] Runloop: full driver reinit for surface switch.\n");
+      command_event(CMD_EVENT_REINIT, &reset_flags);
+      handoff_clear_reset();
+   }
+}
+#endif
+
 /**
  * runloop_iterate:
  *
@@ -7387,6 +7419,9 @@ int runloop_iterate(void)
 #endif
          return 1;
       case RUNLOOP_STATE_PAUSE:
+#ifdef ANDROID
+         runloop_handoff_reset();
+#endif
 #ifdef HAVE_NETWORKING
          /* FIXME: This is an ugly way to tell Netplay this... */
          netplay_driver_ctl(RARCH_NETPLAY_CTL_PAUSE, NULL);
@@ -7405,6 +7440,9 @@ int runloop_iterate(void)
          video_driver_cached_frame();
          goto end;
       case RUNLOOP_STATE_MENU:
+#ifdef ANDROID
+         runloop_handoff_reset();
+#endif
 #if defined(HAVE_MENU) && defined(HAVE_NETWORKING)
          /* FIXME: This is an ugly way to tell Netplay this... */
          if (menu_pause_libretro && netplay_is_enabled)
@@ -7442,6 +7480,9 @@ int runloop_iterate(void)
          goto end;
       case RUNLOOP_STATE_ITERATE:
          runloop_st->flags       |= RUNLOOP_FLAG_CORE_RUNNING;
+#ifdef ANDROID
+         runloop_handoff_reset();
+#endif
          break;
    }
 

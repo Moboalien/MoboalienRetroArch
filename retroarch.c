@@ -1596,10 +1596,19 @@ void drivers_init(
       video_st->frame_cache_data  = NULL;
       if (!video_driver_init_internal(&video_is_threaded,
                verbosity_enabled))
+      {
          retroarch_fail(1, "video_driver_init_internal()");
+         /* A failed reinit leaves no live video driver.  Skip the core's
+          * context_reset() - it probes the hardware render interface and
+          * would dereference the NULL driver (crash with swanstation/etc.).
+          * retroarch_fail() outside retroarch_main_init only logs, so the
+          * failure is survivable: the menu becomes the safe fallback. */
+         video_st->data = NULL;
+      }
 
-      if (   !(video_st->flags & VIDEO_FLAG_CACHE_CONTEXT_ACK)
-            && hwr->context_reset)
+      if (   video_st->data
+          && !(video_st->flags & VIDEO_FLAG_CACHE_CONTEXT_ACK)
+          && hwr->context_reset)
          hwr->context_reset();
       video_st->flags            &= ~VIDEO_FLAG_CACHE_CONTEXT_ACK;
       runloop_st->frame_time_last = 0;

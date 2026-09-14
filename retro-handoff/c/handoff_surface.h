@@ -47,6 +47,19 @@ void handoff_set_changed_cb(void (*cb)(void));
 void handoff_request_resync(void);
 bool handoff_consume_resync_request(void);
 
+/* Full video-driver reinit request.  Some host backends cannot rebuild their
+ * presentation surface in place while a hardware-rendering core is live (the
+ * core caches swapchain-bound framebuffers that would be freed underneath it).
+ * Those backends set this flag from the graphics thread instead of tearing
+ * their surface down, and the host's runloop performs a whole video driver
+ * reinit - which also re-runs the core's context_reset so its framebuffers
+ * are rebuilt on the handed-over window.  safe from any thread; consumed by
+ * the host runloop via handoff_pending_reset()/handoff_clear_reset().
+ */
+void handoff_request_reset(void);
+bool handoff_pending_reset(void);
+void handoff_clear_reset(void);
+
 /* Host-provided emulation control, wired by the embedding app. */
 typedef void (*handoff_control_fn)(void);
 void handoff_set_host_control(handoff_control_fn start, handoff_control_fn stop);

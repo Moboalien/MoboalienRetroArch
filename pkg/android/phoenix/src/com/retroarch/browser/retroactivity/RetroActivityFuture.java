@@ -6,12 +6,16 @@ import android.view.View;
 import android.view.WindowManager;
 import android.content.Intent;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.hardware.input.InputManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.provider.Settings;
+import com.retroarch.BuildConfig;
 import com.retroarch.browser.preferences.util.ConfigFile;
 import com.retroarch.browser.preferences.util.UserPreferences;
 import java.lang.reflect.InvocationTargetException;
@@ -57,6 +61,13 @@ public final class RetroActivityFuture extends RetroActivityCamera {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    // A2A's stream client cold-starts this activity with a bare intent (no
+    // CONFIGFILE/LIBRETRO/etc). Fill the missing extras IN PLACE on the same
+    // Intent object before the native thread starts, so the frontend env scan
+    // boots with the user's config (correct video driver + core paths) instead
+    // of factory defaults. Must run before super.onCreate() because the native
+    // thread calls getIntent() during loadNativeCode.
+    fillMissingLaunchExtras(getIntent(), "onCreate ");
     super.onCreate(savedInstanceState);
     
     isRunning = true;
@@ -66,8 +77,59 @@ public final class RetroActivityFuture extends RetroActivityCamera {
     quitfocus = getIntent().hasExtra("QUITFOCUS");
   }
 
+  /**
+   * Rebuilds the launch extras MainMenuActivity.startRetroActivity() would have
+   * set, mutating the given Intent object in place so the native env scan sees
+   * them no matter which reference it holds. Only fills extras that are missing;
+   * launcher/browser intents keep their explicit values. Extras that are already
+   * present (including a bare-but-purposely-shaped intent) are left untouched.
+   */
+  private void fillMissingLaunchExtras(Intent intent, String origin) {
+    Log.i("RetroActivityFuture", "[handoff] " + origin + "extras: "
+        + (intent == null ? "null" : intent.getExtras() == null ? "none"
+        : intent.getExtras().toString()));
+    if (intent == null || intent.hasExtra("CONFIGFILE")) {
+      return;
+    }
+
+    ApplicationInfo info = getApplicationInfo();
+    intent.putExtra("CONFIGFILE", UserPreferences.getDefaultConfigPath(this));
+    if (!intent.hasExtra("LIBRETRO")) {
+      intent.putExtra("LIBRETRO", info.dataDir + "/cores/");
+    }
+    if (!intent.hasExtra("IME")) {
+      String ime = Settings.Secure.getString(
+          getContentResolver(), Settings.Secure.DEFAULT_INPUT_METHOD);
+      if (ime != null) {
+        intent.putExtra("IME", ime);
+      }
+    }
+    if (!intent.hasExtra("DATADIR")) {
+      intent.putExtra("DATADIR", info.dataDir);
+    }
+    if (!intent.hasExtra("APK")) {
+      intent.putExtra("APK", info.sourceDir);
+    }
+    String external = Environment.getExternalStorageDirectory().getAbsolutePath()
+        + "/Android/data/" + getPackageName() + "/files";
+    if (!intent.hasExtra("SDCARD")) {
+      intent.putExtra("SDCARD", BuildConfig.PLAY_STORE_BUILD
+          ? external
+          : Environment.getExternalStorageDirectory().getAbsolutePath());
+    }
+    if (!intent.hasExtra("EXTERNAL")) {
+      intent.putExtra("EXTERNAL", external);
+    }
+    Log.i("RetroActivityFuture", "[handoff] " + origin + "filled extras: "
+        + intent.getExtras().toString());
+  }
+
   @Override
   public void onNewIntent(Intent intent) {
+    // A2A can relaunch this single-instance activity with another bare intent
+    // after onCreate; refill the extras on this object before it replaces the
+    // current intent (setIntent below) so the native side never loses them.
+    fillMissingLaunchExtras(intent, "onNewIntent ");
     super.onNewIntent(intent);
     
     // Extract game parameters from new intent

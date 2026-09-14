@@ -20,6 +20,7 @@ static handoff_control_fn  s_host_start = NULL;
 static handoff_control_fn  s_host_stop  = NULL;
 static handoff_alive_fn    s_host_alive = NULL;
 static bool                s_resync    = false;
+static bool                s_reset      = false;
 
 void handoff_request_resync(void)
 {
@@ -36,6 +37,29 @@ bool handoff_consume_resync_request(void)
    s_resync = false;
    pthread_mutex_unlock(&s_mutex);
    return r;
+}
+
+void handoff_request_reset(void)
+{
+   pthread_mutex_lock(&s_mutex);
+   s_reset = true;
+   pthread_mutex_unlock(&s_mutex);
+}
+
+bool handoff_pending_reset(void)
+{
+   bool r;
+   pthread_mutex_lock(&s_mutex);
+   r = s_reset;
+   pthread_mutex_unlock(&s_mutex);
+   return r;
+}
+
+void handoff_clear_reset(void)
+{
+   pthread_mutex_lock(&s_mutex);
+   s_reset = false;
+   pthread_mutex_unlock(&s_mutex);
 }
 
 bool handoff_active(void)
